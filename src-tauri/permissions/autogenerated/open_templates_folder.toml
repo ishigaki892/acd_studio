@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-open-templates-folder"
+description = "Enables the open_templates_folder command without any pre-configured scope."
+commands.allow = ["open_templates_folder"]
+
+[[permission]]
+identifier = "deny-open-templates-folder"
+description = "Denies the open_templates_folder command without any pre-configured scope."
+commands.deny = ["open_templates_folder"]

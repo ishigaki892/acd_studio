@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-debug-evaluate"
+description = "Enables the debug_evaluate command without any pre-configured scope."
+commands.allow = ["debug_evaluate"]
+
+[[permission]]
+identifier = "deny-debug-evaluate"
+description = "Denies the debug_evaluate command without any pre-configured scope."
+commands.deny = ["debug_evaluate"]

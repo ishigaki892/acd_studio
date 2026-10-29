@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-ask-external-change"
+description = "Enables the ask_external_change command without any pre-configured scope."
+commands.allow = ["ask_external_change"]
+
+[[permission]]
+identifier = "deny-ask-external-change"
+description = "Denies the ask_external_change command without any pre-configured scope."
+commands.deny = ["ask_external_change"]

@@ -1,0 +1,148 @@
+// AtCoder のログインと提出のコマンドの呼び出し（Rust 側は src-tauri/src/session.rs・submit.rs。Phase 6。D-147・D-148）
+import { invoke } from "@tauri-apps/api/core";
+import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import type { ProblemId } from "./problem";
+import type { Target } from "./workspace";
+
+// ログインの状態。userName は、ログインの窓か提出のフォームで確かめたもの（起動し直すと、次に確かめるまで null）
+export type SessionView = {
+  loggedIn: boolean;
+  userName: string | null;
+  // ログインの窓で失敗したときの理由
+  error: string | null;
+};
+
+// 判定（状態の JSON から。AtCoder のジャッジの値）
+export type Judge = {
+  // 判定中
+  waiting: boolean;
+  // ページの表記（例：AC、WA、WJ。判定中は進み具合が入ることがある）
+  label: string;
+  // 表記の英語名（例：Accepted）
+  title: string | null;
+  score: string | null;
+  timeMs: number | null;
+  memoryKib: number | null;
+};
+
+// rejected：受け付けられなかった、unknownId：受け付けられたが ID が分からない、waiting：判定待ち、
+// judging：判定中、done：確定、unreadable：読めなかった（「更新」で読み直せる）
+export type SubmissionState = "rejected" | "unknownId" | "waiting" | "judging" | "done" | "unreadable";
+
+export type SubmissionView = {
+  // このアプリの中での番号（「更新」に使う）
+  key: number;
+  contest: string;
+  task: string;
+  taskTitle: string;
+  // 送った時刻（UNIX 時間のミリ秒）
+  timeMs: number;
+  language: string;
+  // 作業領域のルートからのパス
+  file: string;
+  submissionId: number | null;
+  state: SubmissionState;
+  // 判定を読み続けている
+  tracking: boolean;
+  judge: Judge | null;
+  message: string | null;
+  detailUrl: string | null;
+  listUrl: string;
+};
+
+// 「提出」の結果。送らなかったもの（outOfPeriod・notLoggedIn・refused）は、
+// 「コードをコピーして公式の提出ページを開く」に使うファイルと注意を持つ
+export type SubmitOutcome =
+  | { kind: "outOfPeriod"; start: string; end: string; file: string; warnings: string[]; submitUrl: string }
+  | { kind: "notLoggedIn"; message: string; file: string; warnings: string[]; submitUrl: string }
+  | { kind: "refused"; reason: string; file: string; warnings: string[]; submitUrl: string }
+  | { kind: "cancelled" }
+  // dialogSkipped は、確認のダイアログを省いたときの、サンプルテストのケースの数（D-162）
+  | { kind: "sent"; submission: SubmissionView; dialogSkipped?: number };
+
+// ログインの窓を開く（済んだかどうかは onSession で届く）
+export function atcoderLogin(): Promise<void> {
+  return invoke("atcoder_login");
+}
+
+export function atcoderSession(): Promise<SessionView> {
+  return invoke<SessionView>("atcoder_session");
+}
+
+// Keychain の値を消す（サーバーには何も送らない）
+export function atcoderLogout(): Promise<SessionView> {
+  return invoke<SessionView>("atcoder_logout");
+}
+
+// 提出する。確認のダイアログは Rust 側が出し、「提出する」のときだけ送る
+export function atcoderSubmit(target: Target, problem: ProblemId): Promise<SubmitOutcome> {
+  return invoke<SubmitOutcome>("atcoder_submit", {
+    target,
+    contest: problem.contest,
+    task: problem.task,
+  });
+}
+
+// このアプリを起動してから出した提出（新しい順）
+export function atcoderSubmissions(): Promise<SubmissionView[]> {
+  return invoke<SubmissionView[]>("atcoder_submissions");
+}
+
+// 「更新」：判定を読み直す（まだ判定中なら、また追う）
+export function refreshSubmission(key: number): Promise<SubmissionView> {
+  return invoke<SubmissionView>("atcoder_refresh_submission", { key });
+}
+
+// 公式の提出のページを既定のブラウザで開く
+export function openSubmitPage(problem: ProblemId): Promise<void> {
+  return invoke("open_submit_page", { contest: problem.contest, task: problem.task });
+}
+
+// 提出の詳細（submissionId があるとき）か、自分の提出の一覧を、既定のブラウザで開く
+export function openSubmissionPage(contest: string, submissionId: number | null): Promise<void> {
+  return invoke("open_submission_page", { contest, submissionId });
+}
+
+// サイドバーの「コンテスト」（Phase 18 作業 4。D-218）。問題ごとの提出状況
+export type TaskStatus = {
+  task: string;
+  // 例：「A」。問題の一覧にない問題は空
+  label: string;
+  title: string;
+  // AC の提出がある
+  accepted: boolean;
+  // いちばん新しい提出の判定と ID（提出がなければ null）
+  last: string | null;
+  lastId: number | null;
+  count: number;
+};
+
+export type ContestStatus = {
+  contest: string;
+  tasks: TaskStatus[];
+  // 読んだ時刻（UNIX 時間のミリ秒）
+  readAtMs: number;
+  // 上限のページまで読んでも続きがあった
+  truncated: boolean;
+  pages: number;
+};
+
+export type StatusOutcome =
+  | { kind: "read"; status: ContestStatus }
+  | { kind: "notLoggedIn" }
+  | { kind: "failed"; message: string };
+
+// 「自分の提出」のページを読み、問題ごとに数える
+export function contestStatus(contest: string): Promise<StatusOutcome> {
+  return invoke<StatusOutcome>("contest_status", { contest });
+}
+
+// ログインの状態が変わった（ログインの窓・提出のとき）
+export function onSession(handler: (view: SessionView) => void): Promise<UnlistenFn> {
+  return listen<SessionView>("atcoder-session", (event) => handler(event.payload));
+}
+
+// 提出の判定が変わった
+export function onSubmission(handler: (view: SubmissionView) => void): Promise<UnlistenFn> {
+  return listen<SubmissionView>("atcoder-submission", (event) => handler(event.payload));
+}

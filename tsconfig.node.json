@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    /* TypeScript 6 の既定値を明示する（D-056） */
+    "strict": true,
+    "module": "esnext",
+    "target": "es2025",
+    "noUncheckedSideEffectImports": true,
+    "libReplacement": false,
+    "rootDir": "./",
+    "types": [],
+    "stableTypeOrdering": true,
+
+    "composite": true,
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "allowSyntheticDefaultImports": true
+  },
+  "include": ["vite.config.ts"]
+}

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-start-random"
+description = "Enables the start_random command without any pre-configured scope."
+commands.allow = ["start_random"]
+
+[[permission]]
+identifier = "deny-start-random"
+description = "Denies the start_random command without any pre-configured scope."
+commands.deny = ["start_random"]

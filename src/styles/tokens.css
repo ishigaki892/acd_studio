@@ -1,0 +1,113 @@
+/*
+ * 暫定デザイントークン（D-019）
+ * 値は docs/phase0/01-ui-design.md §13 の推定値。確定仕様ではない。
+ * 色の多くは、VS Code 1.114.0 の Dark Modern（構文は Dark+）に合わせた（Phase 11 作業 4。D-180）。
+ * 対応と前の値は docs/phase11/05-dark-modern.md §2
+ */
+:root {
+  /* 色（§13.2。Dark Modern に合わせた。D-180） */
+  --bg-base: #1f1f1f;
+  --bg-toolbar: #181818;
+  --bg-activitybar: #181818;
+  --bg-sidebar: #181818;
+  --fg-default: #cccccc;
+  --fg-strong: #ffffff;
+  --fg-secondary: #9d9d9d;
+  --fg-muted: #868686;
+  --accent-focus: #4daafc;
+  --fg-line-number: #6e7681;
+  --bg-list-selected: #37373d;
+  --bg-tab-active: #1f1f1f;
+
+  /*
+   * エディタの現在行・選択範囲（§13 にない。仮の値）。
+   * 現在行は半透明にする。不透明にすると、現在行の上の選択範囲が隠れる。
+   * 現在行の値は、利用者が設定で選んだもの（Phase 11 作業 3。D-179）
+   */
+  --bg-active-line: rgba(130, 170, 220, 0.12);
+  --bg-selection: #264f78;
+
+  /* シンタックスハイライト（Dark+ に合わせた。変数だけは利用者が選んだ色。D-180・D-179） */
+  --syntax-keyword: #c586c0;
+  --syntax-keyword-definition: #569cd6;
+  --syntax-type: #4ec9b0;
+  --syntax-number: #b5cea8;
+  --syntax-comment: #6a9955;
+  --syntax-function: #dcdcaa;
+  --syntax-macro: #dcdcaa;
+  --syntax-string: #ce9178;
+  /* 変数の色は、利用者が設定で選んだもの（Phase 11 作業 3。D-179） */
+  --syntax-variable: #00c7fc;
+  /* サンプルテストの判定の印（D-140）。AC は緑、それ以外の誤り（WA・RE・TLE・MLE・OLE・CE）は黄。文字は背景の色 */
+  --verdict-ac: #5cb85c;
+  --verdict-ng: #f0ad4e;
+  /* 問題文のハイライト（D-142）。数字・変数（「問題文」「制約」の区画）、mod の値、制限の値 */
+  --hl-number: #e8b86d;
+  --hl-variable: #7fc8f8;
+  --hl-mod: #ff8f8f;
+  --hl-mod-bg: rgba(255, 143, 143, 0.16);
+  /* デバッグ（D-146 2.6）。ブレークポイントの印と、止まった行の背景 */
+  --debug-breakpoint: #e5534b;
+  --debug-stopped-line: rgba(240, 173, 78, 0.18);
+
+  /* ファイル一覧（Phase 8 作業 3。D-156）。インデントの境の線と、種類ごとのアイコンの色（仮の値） */
+  /* インデントの線は VS Code と同じく、ふだんは tree.indentGuidesStroke の 40%、カーソルのあるところはそのまま（D-180） */
+  --tree-guide: rgba(88, 88, 88, 0.4);
+  --tree-guide-active: #585858;
+  --icon-folder: #d9b25f;
+  --icon-rust: #e3825a;
+  --icon-cpp: #6c9fd8;
+  --icon-python: #56b6a0;
+  --icon-header: #a688d8;
+  --icon-cargo: #c9925a;
+  --icon-config: #8aa3bd;
+  --icon-lock: #8aa3bd;
+  --icon-doc: #6fb3e6;
+  --icon-json: #e8c35a;
+  --icon-input: #6cc490;
+  --icon-output: #c49ce8;
+  --icon-text: #9fb3c8;
+  --icon-file: #7f93a8;
+
+  /*
+   * エディタのインデントの段の色と、診断のある行の色・行末のメッセージ（Phase 8 作業 5。D-158。仮の値）。
+   * インデントの段と、診断のある行の色は、利用者が設定で選んだもの（Phase 11 作業 3。D-179）
+   */
+  --indent-rainbow-1: rgba(255, 255, 64, 0.19);
+  --indent-rainbow-2: rgba(127, 255, 127, 0.18);
+  --indent-rainbow-3: rgba(255, 127, 255, 0.2);
+  --indent-rainbow-4: rgba(79, 236, 236, 0.2);
+  --lens-error: #f14c4c;
+  --lens-error-line: rgba(229, 83, 75, 0.2);
+  --lens-warning: #cca700;
+  --lens-warning-line: rgba(224, 192, 96, 0.19);
+
+  /* 検索の当たり（Phase 12 作業 2。D-183。Dark Modern の editor.findMatchBackground を半透明にしたもの） */
+  --search-hit: rgba(158, 106, 3, 0.55);
+
+  /* 境界線（Dark Modern の panel.border など。D-180） */
+  --border: #2b2b2b;
+
+  /* 寸法（§13.3） */
+  --activitybar-width: 52px;
+  --sidebar-width: 275px;
+  --right-column-width: 440px;
+  --toolbar-height: 40px;
+  --tab-height: 30px;
+  /* エディタのタブの列（VS Code と同じ 35px。下のパネルのタブは --tab-height のまま。D-191） */
+  --editor-tab-height: 35px;
+
+  /* 細いスクロールバーのつまみ（エディタのタブの列。VS Code の scrollbarSlider.background。D-191） */
+  --scrollbar-thumb: rgba(121, 121, 121, 0.4);
+
+  /* フォント（§13.4。OS 標準のフォントを使う） */
+  --font-ui: -apple-system, BlinkMacSystemFont, "Hiragino Sans", sans-serif;
+  --font-size-ui: 13px;
+  /* コード（§13.3・§13.4。等幅フォントは OS に入っているものを使う） */
+  --font-code: "SF Mono", Menlo, Monaco, monospace;
+  --font-size-code: 13px;
+  --line-height-code: 20px;
+  /* エディタと問題文の欄の文字の大きさ（Phase 8 作業 6。D-159）。settings.json の editor.fontSize・problem.fontSize で body が上書きする */
+  --font-size-editor: 13px;
+  --font-size-problem: 13px;
+}

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- AtCoder Studio のアイコン：角丸の四角に { } と、その中の緑のチェック（macOS の決まりに合わせ、824 の四角のまわりを空ける） -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2b3445"/>
+      <stop offset="1" stop-color="#161b26"/>
+    </linearGradient>
+  </defs>
+  <rect x="100" y="100" width="824" height="824" rx="185" fill="url(#bg)"/>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M 400 300 C 345 300 330 325 330 375 L 330 465 C 330 495 312 512 278 512 C 312 512 330 529 330 559 L 330 649 C 330 699 345 724 400 724" stroke="#e8ecf2" stroke-width="56"/>
+    <path d="M 624 300 C 679 300 694 325 694 375 L 694 465 C 694 495 712 512 746 512 C 712 512 694 529 694 559 L 694 649 C 694 699 679 724 624 724" stroke="#e8ecf2" stroke-width="56"/>
+    <path d="M 438 518 L 492 572 L 592 456" stroke="#3fb950" stroke-width="60"/>
+  </g>
+</svg>

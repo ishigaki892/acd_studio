@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-atcoder-logout"
+description = "Enables the atcoder_logout command without any pre-configured scope."
+commands.allow = ["atcoder_logout"]
+
+[[permission]]
+identifier = "deny-atcoder-logout"
+description = "Denies the atcoder_logout command without any pre-configured scope."
+commands.deny = ["atcoder_logout"]

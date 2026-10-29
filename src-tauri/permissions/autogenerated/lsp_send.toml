@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-lsp-send"
+description = "Enables the lsp_send command without any pre-configured scope."
+commands.allow = ["lsp_send"]
+
+[[permission]]
+identifier = "deny-lsp-send"
+description = "Denies the lsp_send command without any pre-configured scope."
+commands.deny = ["lsp_send"]

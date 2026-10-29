@@ -1,0 +1,2609 @@
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--bg-base);
+  color: var(--fg-default);
+  font-family: var(--font-ui);
+  font-size: var(--font-size-ui);
+  overflow: hidden;
+}
+
+/* hidden 属性を、領域ごとの display の指定より優先する */
+[hidden] {
+  display: none !important;
+}
+
+/*
+ * 原典 §4.1 の 7 領域（D-043）
+ * 列：アクティビティバー｜サイドバー（ファイル一覧など。D-182）｜中央列（エディタ・下部パネル）｜右列（問題文・右下パネル）
+ * 中央列と右列の上にボタンゾーンを置く。中央列と右列は、それぞれ別に上下に分ける
+ */
+.app {
+  display: grid;
+  /* 列の幅は App.tsx で指定する（ドラッグで変わるため） */
+  grid-template-rows: var(--toolbar-height) minmax(0, 1fr);
+  grid-template-areas:
+    "activitybar sidebar split-sidebar toolbar toolbar toolbar"
+    "activitybar sidebar split-sidebar center split-right right";
+  box-sizing: border-box;
+  height: 100%;
+  /* OS のタイトルバーとの境界線（ユーザーの意見、2026-10-16） */
+  border-top: 1px solid var(--border);
+}
+
+.center-column,
+.right-column {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.center-column {
+  grid-area: center;
+}
+
+.right-column {
+  grid-area: right;
+}
+
+/*
+ * ペインの境界線（作業 2）。見た目は 1px の線で、つかめる範囲は前後に広げる
+ */
+.splitter {
+  position: relative;
+  z-index: 1;
+  flex: none;
+  background: var(--border);
+}
+
+.splitter::after {
+  content: "";
+  position: absolute;
+}
+
+.splitter-vertical {
+  cursor: col-resize;
+}
+
+.splitter-vertical::after {
+  top: 0;
+  bottom: 0;
+  left: -3px;
+  right: -3px;
+}
+
+.splitter-horizontal {
+  height: 1px;
+  cursor: row-resize;
+}
+
+.splitter-horizontal::after {
+  left: 0;
+  right: 0;
+  top: -3px;
+  bottom: -3px;
+}
+
+.splitter-sidebar {
+  grid-area: split-sidebar;
+}
+
+.splitter-right {
+  grid-area: split-right;
+}
+
+/* ドラッグ中は、ポインターがどこにあってもカーソルを保ち、文字を選択しない */
+body.dragging-vertical,
+body.dragging-vertical * {
+  cursor: col-resize !important;
+  user-select: none;
+}
+
+body.dragging-horizontal,
+body.dragging-horizontal * {
+  cursor: row-resize !important;
+  user-select: none;
+}
+
+.activitybar {
+  grid-area: activitybar;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: var(--bg-activitybar);
+  border-right: 1px solid var(--border);
+}
+
+.activitybar-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--activitybar-width);
+  height: var(--activitybar-width);
+  padding: 0;
+  border: none;
+  border-left: 2px solid transparent;
+  background: none;
+  color: var(--fg-muted);
+}
+
+/* 下端に寄せる（「設定」。D-159） */
+.activitybar-bottom {
+  margin-top: auto;
+}
+
+.activitybar-item.selected {
+  border-left-color: var(--accent-focus);
+  color: var(--fg-strong);
+}
+
+.sidebar {
+  grid-area: sidebar;
+  min-width: 0;
+  overflow: hidden;
+  background: var(--bg-sidebar);
+}
+
+.sidebar-title {
+  padding: 8px 12px;
+  color: var(--fg-secondary);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+
+/* サイドバーの中身（エクスプローラー・検索・実行とデバッグ。Phase 12 作業 1。D-182）。選んでいないものは隠す */
+.sidebar-view {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.sidebar-view[hidden] {
+  display: none;
+}
+
+/* 検索（Phase 12 作業 2。D-183） */
+.search-view {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* 置換の欄を開く「▸」と、入力欄の列（Phase 12 作業 3。D-184） */
+.search-row {
+  display: flex;
+  align-items: flex-start;
+  margin: 0 8px 6px 2px;
+}
+
+.search-replace-toggle {
+  flex: none;
+  width: 16px;
+  height: 26px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--fg-muted);
+  font: inherit;
+  cursor: pointer;
+}
+
+.search-fields {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.search-replace-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.search-replace-row .search-form {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.search-replace-all,
+.search-file-replace,
+.search-undo {
+  flex: none;
+  padding: 2px 6px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: none;
+  color: var(--accent-focus);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.search-replace-all:disabled,
+.search-file-replace:disabled,
+.search-undo:disabled {
+  color: var(--fg-muted);
+  cursor: default;
+}
+
+.search-notice {
+  color: var(--fg-default);
+}
+
+.search-undo {
+  margin-left: 6px;
+}
+
+.search-file-row {
+  display: flex;
+  align-items: center;
+}
+
+.search-file-row .search-file-header {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.search-file-replace {
+  margin-right: 8px;
+  padding: 0 5px;
+}
+
+.search-form {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 4px 2px 6px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--bg-base);
+}
+
+.search-form:focus-within {
+  border-color: var(--accent-focus);
+}
+
+.search-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 3px 0;
+  border: none;
+  outline: none;
+  background: none;
+  color: var(--fg-default);
+  font: inherit;
+}
+
+.search-options {
+  display: flex;
+  flex: none;
+  gap: 2px;
+}
+
+.search-option {
+  min-width: 22px;
+  height: 20px;
+  padding: 0 3px;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  background: none;
+  color: var(--fg-muted);
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.search-option.on {
+  border-color: var(--accent-focus);
+  color: var(--fg-strong);
+}
+
+.search-summary {
+  padding: 2px 12px 6px;
+  color: var(--fg-secondary);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.search-error {
+  color: var(--lens-error);
+}
+
+.search-results {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: auto;
+}
+
+.search-file-header,
+.search-match {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 22px;
+  padding: 0 8px 0 12px;
+  border: none;
+  background: none;
+  color: var(--fg-default);
+  font: inherit;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.search-file-header:hover,
+.search-match:hover {
+  background: var(--bg-active-line);
+}
+
+.search-twisty {
+  flex: none;
+  width: 14px;
+  color: var(--fg-muted);
+}
+
+.search-file-name {
+  flex: none;
+  margin-left: 4px;
+}
+
+.search-file-dir {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin-left: 6px;
+  overflow: hidden;
+  color: var(--fg-muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+}
+
+.search-count {
+  flex: none;
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: 8px;
+  background: var(--bg-list-selected);
+  color: var(--fg-secondary);
+  font-size: 11px;
+}
+
+.search-match {
+  display: block;
+  padding-left: 32px;
+  overflow: hidden;
+  font-family: var(--font-code);
+  font-size: 12px;
+  line-height: 22px;
+  text-overflow: ellipsis;
+}
+
+.search-hit {
+  border-radius: 2px;
+  background: var(--search-hit);
+  color: inherit;
+}
+
+.toolbar {
+  grid-area: toolbar;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  background: var(--bg-toolbar);
+  border-bottom: 1px solid var(--border);
+}
+
+/*
+ * 上下に分けたペイン。高さの比（flex-grow）は App.tsx で指定する。
+ * 初期値は中央列 7:3、右列 5:3（layout/sizes.ts）
+ */
+.editor,
+.bottom-panel,
+.problem,
+.bottom-right-panel {
+  flex-shrink: 1;
+  flex-basis: 0;
+  min-height: 0;
+}
+
+/* ファイル一覧（作業 4） */
+.sidebar {
+  display: flex;
+  flex-direction: column;
+}
+
+.file-tree {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: auto;
+}
+
+.file-tree-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.file-tree-item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 24px;
+  padding-right: 8px;
+  border: none;
+  background: none;
+  color: var(--fg-default);
+  font: inherit;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.file-tree-item:hover {
+  background: var(--bg-active-line);
+}
+
+.file-tree-item.active {
+  background: var(--bg-list-selected);
+  color: var(--fg-strong);
+}
+
+.file-tree-marker {
+  flex: none;
+  width: 14px;
+  color: var(--fg-muted);
+}
+
+/* アイコン（Phase 8 作業 3。D-156）。色は種類ごとの変数 */
+.file-icon {
+  flex: none;
+  margin-right: 5px;
+}
+
+.file-icon-folder,
+.file-icon-folderOpen {
+  color: var(--icon-folder);
+}
+
+.file-icon-rust {
+  color: var(--icon-rust);
+}
+
+.file-icon-cpp {
+  color: var(--icon-cpp);
+}
+
+.file-icon-python {
+  color: var(--icon-python);
+}
+
+.file-icon-header {
+  color: var(--icon-header);
+}
+
+.file-icon-cargo {
+  color: var(--icon-cargo);
+}
+
+.file-icon-config {
+  color: var(--icon-config);
+}
+
+.file-icon-lock {
+  color: var(--icon-lock);
+}
+
+.file-icon-doc {
+  color: var(--icon-doc);
+}
+
+.file-icon-json {
+  color: var(--icon-json);
+}
+
+.file-icon-input {
+  color: var(--icon-input);
+}
+
+.file-icon-output {
+  color: var(--icon-output);
+}
+
+.file-icon-text {
+  color: var(--icon-text);
+}
+
+.file-icon-file {
+  color: var(--icon-file);
+}
+
+/* インデントの境（D-156）。深さ 1 以上の一覧の左に縦の線。カーソルのある項目の、いちばん内側の一覧の線だけを濃くする */
+.file-tree-list.nested {
+  position: relative;
+}
+
+.file-tree-list.nested::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--guide-left);
+  width: 1px;
+  background: var(--tree-guide);
+  pointer-events: none;
+}
+
+.file-tree-list.nested:hover:not(:has(.file-tree-list.nested:hover))::before {
+  background: var(--tree-guide-active);
+}
+
+.file-tree-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.file-tree-dirty {
+  margin-left: auto;
+  padding-left: 8px;
+  color: var(--fg-secondary);
+  font-size: 10px;
+}
+
+.file-tree-header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-right: 8px;
+}
+
+.file-tree-header-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-tree-action {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: none;
+  color: var(--fg-secondary);
+  font: inherit;
+  cursor: pointer;
+}
+
+.file-tree-action:hover {
+  background: var(--bg-active-line);
+  color: var(--fg-strong);
+}
+
+.file-tree-input {
+  box-sizing: border-box;
+  width: calc(100% - 24px);
+  height: 22px;
+  padding: 0 4px;
+  border: 1px solid var(--accent-focus);
+  border-radius: 2px;
+  background: var(--bg-base);
+  color: var(--fg-strong);
+  font: inherit;
+  outline: none;
+}
+
+/* 「コンテストを作る」（Phase 7a 作業 2。D-151）：ファイル一覧の見出しと一覧の間 */
+.contest-creator {
+  flex: 0 1 auto;
+  max-height: 45%;
+  overflow: auto;
+  padding: 0 8px 8px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.contest-creator[hidden] {
+  display: none;
+}
+
+.contest-creator-form {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.contest-creator-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 24px;
+  padding: 0 6px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-base);
+  color: var(--fg-default);
+  font: inherit;
+}
+
+.contest-creator-input:disabled {
+  color: var(--fg-muted);
+}
+
+/* 設定の画面の「問題を作るときの言語」（Phase 16 作業 3。D-208） */
+.settings-select {
+  height: 24px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-base);
+  color: var(--fg-default);
+  font: inherit;
+}
+
+.settings-select {
+  margin-left: 8px;
+}
+
+.contest-creator-button {
+  min-width: 0;
+  height: 24px;
+  padding: 0 8px;
+  white-space: nowrap;
+}
+
+.contest-creator-status,
+.contest-creator-note {
+  margin-top: 6px;
+  color: var(--fg-secondary);
+  overflow-wrap: anywhere;
+}
+
+.contest-creator-status.failed {
+  color: var(--verdict-ng);
+}
+
+.contest-creator-results {
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+  color: var(--fg-secondary);
+}
+
+.contest-creator-results li {
+  padding: 2px 0;
+  overflow-wrap: anywhere;
+}
+
+.contest-creator-results li.failed {
+  color: var(--verdict-ng);
+}
+
+.contest-creator-task {
+  margin-right: 6px;
+  color: var(--fg-strong);
+}
+
+/* 右クリックのメニュー（作業 4c） */
+.context-menu {
+  position: fixed;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  min-width: 140px;
+  padding: 4px 0;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-toolbar);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.context-menu button {
+  padding: 4px 12px;
+  border: none;
+  background: none;
+  color: var(--fg-default);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.context-menu button:hover {
+  background: var(--bg-list-selected);
+}
+
+.open-folder-button {
+  margin: 8px 12px;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-toolbar);
+  color: var(--fg-default);
+  font: inherit;
+  cursor: pointer;
+}
+
+/* サイドバーの「コンテスト」（Phase 18 作業 4。D-218）。問題ごとの提出状況。✓ は AC の色、✗ は AC 以外の判定の色 */
+.contest-view {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.contest-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-right: 8px;
+}
+
+.contest-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.contest-refresh,
+.contest-link {
+  flex: none;
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: none;
+  color: var(--fg-default);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.contest-refresh:disabled {
+  color: var(--fg-muted);
+  cursor: default;
+}
+
+.contest-meta {
+  min-height: 16px;
+  padding: 0 12px 4px;
+  color: var(--fg-muted);
+  font-size: 11px;
+}
+
+.contest-note,
+.contest-error {
+  margin: 4px 12px;
+  color: var(--fg-secondary);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.contest-error {
+  color: var(--verdict-ng);
+}
+
+.contest-login {
+  padding-bottom: 8px;
+}
+
+.contest-login .settings-button {
+  margin-left: 12px;
+}
+
+.contest-tasks {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.contest-task {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 3px 12px;
+  border: none;
+  background: none;
+  color: var(--fg-default);
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.contest-task:hover {
+  background: var(--bg-list-selected);
+}
+
+.contest-task.current {
+  background: var(--bg-list-selected);
+  color: var(--fg-strong);
+}
+
+.contest-mark {
+  flex: none;
+  width: 12px;
+  text-align: center;
+}
+
+.contest-task-accepted .contest-mark,
+.contest-task-accepted .contest-verdict {
+  color: var(--verdict-ac);
+}
+
+.contest-task-tried .contest-mark,
+.contest-task-tried .contest-verdict {
+  color: var(--verdict-ng);
+}
+
+.contest-task-none .contest-mark,
+.contest-task-none .contest-verdict {
+  color: var(--fg-muted);
+}
+
+.contest-label {
+  flex: none;
+  min-width: 18px;
+  font-weight: 600;
+}
+
+.contest-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.contest-verdict {
+  flex: none;
+  white-space: nowrap;
+}
+
+.contest-link {
+  align-self: flex-start;
+  margin: 8px 12px;
+}
+
+.sidebar-error {
+  margin-top: auto;
+  padding: 8px 12px;
+  border-top: 1px solid var(--border);
+  color: var(--fg-secondary);
+  overflow-wrap: anywhere;
+  /* 知らせが 2 つ以上あるときは、行を分ける（D-159） */
+  white-space: pre-line;
+}
+
+/* エディタの領域：タブの列とエディタを縦に並べる（作業 4b） */
+.editor {
+  display: flex;
+  flex-direction: column;
+}
+
+.tab-bar {
+  display: flex;
+  flex: none;
+  height: var(--editor-tab-height);
+  overflow-x: auto;
+  overflow-y: hidden;
+  background: var(--bg-toolbar);
+  border-bottom: 1px solid var(--border);
+}
+
+/* 横のスクロールバーは細くし、列にマウスを乗せたときだけつまみを出す（D-191）。
+   「スクロールバーを常に表示」の設定でも、タブが押し潰されないように */
+.tab-bar::-webkit-scrollbar {
+  height: 3px;
+}
+
+.tab-bar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.tab-bar::-webkit-scrollbar-thumb {
+  background: transparent;
+}
+
+.tab-bar:hover::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+}
+
+.tab {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  padding: 0 6px 0 12px;
+  border-right: 1px solid var(--border);
+  color: var(--fg-muted);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.tab .file-icon {
+  margin-right: 0;
+}
+
+.tab.active {
+  background: var(--bg-tab-active);
+  color: var(--fg-strong);
+}
+
+.tab-folder {
+  color: var(--fg-muted);
+  font-size: 11px;
+}
+
+.tab-readonly {
+  color: var(--fg-muted);
+  font-size: 11px;
+}
+
+/* 読み取り専用のタブ（作業領域の外のソース。D-133）のとき、エディタの上に場所を出す帯 */
+/* パンくずリスト（Phase 18 作業 1・2。D-216）。タブの列の下に、作業領域からの道筋・ファイル・記号（見出し）。
+   段を押すと、その下に一覧を重ねる */
+.breadcrumbs {
+  position: relative;
+  flex: none;
+  height: 22px;
+  background: var(--bg-base);
+  color: var(--fg-secondary);
+  font-size: 12px;
+}
+
+.breadcrumbs-path {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  padding: 0 10px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+}
+
+.breadcrumbs-path::-webkit-scrollbar {
+  height: 3px;
+}
+
+.breadcrumbs-path::-webkit-scrollbar-track,
+.breadcrumbs-path::-webkit-scrollbar-thumb {
+  background: transparent;
+}
+
+.breadcrumbs-path:hover::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+}
+
+.breadcrumb {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  height: 100%;
+  padding: 0 2px;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  white-space: nowrap;
+}
+
+button.breadcrumb {
+  cursor: pointer;
+}
+
+button.breadcrumb:hover,
+button.breadcrumb:focus-visible {
+  color: var(--fg-strong);
+}
+
+.breadcrumb .file-icon,
+.breadcrumb-menu-item .file-icon {
+  margin-right: 0;
+}
+
+.breadcrumb-separator {
+  flex: none;
+  padding: 0 2px;
+  color: var(--fg-muted);
+}
+
+/* 記号の種類の印（D-216）。色は色分けと同じ変数 */
+.symbol-icon {
+  flex: none;
+  min-width: 12px;
+  font-size: 11px;
+  text-align: center;
+}
+
+.symbol-icon-function {
+  color: var(--syntax-function);
+}
+
+.symbol-icon-type {
+  color: var(--syntax-type);
+}
+
+.symbol-icon-module {
+  color: var(--fg-secondary);
+}
+
+.symbol-icon-variable {
+  color: var(--syntax-variable);
+}
+
+.symbol-icon-other {
+  color: var(--fg-muted);
+}
+
+.breadcrumb-menu {
+  position: absolute;
+  top: 100%;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  min-width: 180px;
+  max-width: 420px;
+  max-height: 320px;
+  padding: 4px 0;
+  overflow-y: auto;
+  background: var(--bg-toolbar);
+  border: 1px solid var(--border);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.36);
+}
+
+.breadcrumb-menu-item {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border: none;
+  background: none;
+  color: var(--fg-default);
+  font: inherit;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.breadcrumb-menu-item.current {
+  color: var(--fg-strong);
+  font-weight: 600;
+}
+
+.breadcrumb-menu-item:hover,
+.breadcrumb-menu-item:focus {
+  background: var(--bg-list-selected);
+  outline: none;
+}
+
+.breadcrumb-menu-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.breadcrumb-menu-empty {
+  padding: 3px 10px;
+  color: var(--fg-muted);
+}
+
+.readonly-banner {
+  flex: none;
+  padding: 4px 12px;
+  overflow: hidden;
+  background: var(--bg-toolbar);
+  border-bottom: 1px solid var(--border);
+  color: var(--fg-secondary);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tab-dirty {
+  color: var(--fg-secondary);
+  font-size: 10px;
+}
+
+.tab-close {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.tab-close:hover {
+  background: var(--bg-active-line);
+}
+
+.editor-stack {
+  position: relative;
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+/* CodeMirror を置く要素。エディタの領域いっぱいに広げる */
+.editor-host {
+  height: 100%;
+}
+
+/* ボタンゾーンの「実行」「サンプルテスト」（Phase 2 作業 1） */
+.run-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+/* 自前のツールチップ（D-023）。マウスを乗せたとき・キーボードで選んだときに、ボタンの下に出す */
+.run-button-wrap {
+  position: relative;
+}
+
+.run-button-wrap[data-tip]:hover::after,
+.run-button-wrap[data-tip]:has(:focus-visible)::after {
+  content: attr(data-tip);
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 20;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-toolbar);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  color: var(--fg-default);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.run-button {
+  min-width: 72px;
+  height: 26px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-tab-active);
+  color: var(--fg-strong);
+  font: inherit;
+  cursor: pointer;
+}
+
+.run-button:hover {
+  border-color: var(--accent-focus);
+}
+
+/* 無効なボタン。title のツールチップを出すため disabled にはしない（D-023） */
+.run-button[aria-disabled="true"] {
+  color: var(--fg-muted);
+  cursor: default;
+}
+
+.run-button[aria-disabled="true"]:hover {
+  border-color: var(--border);
+}
+
+/* 下部パネル：タブの列と中身を縦に並べる（Phase 2 作業 1） */
+.bottom-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.panel-tabs {
+  display: flex;
+  flex: none;
+  height: var(--tab-height);
+  background: var(--bg-toolbar);
+  border-bottom: 1px solid var(--border);
+}
+
+.panel-tab {
+  flex: none;
+  padding: 0 12px;
+  white-space: nowrap;
+  border: none;
+  border-bottom: 1px solid transparent;
+  background: none;
+  color: var(--fg-muted);
+  font: inherit;
+  cursor: pointer;
+}
+
+.panel-tab.active {
+  border-bottom-color: var(--accent-focus);
+  color: var(--fg-strong);
+}
+
+/* タブのない欄の見出し（右下の「提出結果」。Phase 12 作業 1。D-182） */
+.panel-title {
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  white-space: nowrap;
+  color: var(--fg-strong);
+}
+
+/* 実行ログのコピー・消去（Phase 4a 作業 1。D-137）。タブの右に置く */
+.panel-actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px;
+}
+
+.panel-action {
+  height: 20px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-tab-active);
+  color: var(--fg-strong);
+  font: inherit;
+  cursor: pointer;
+}
+
+.panel-action:hover:not(:disabled) {
+  border-color: var(--accent-focus);
+}
+
+.panel-action:disabled {
+  color: var(--fg-muted);
+  cursor: default;
+}
+
+.panel-note {
+  color: var(--fg-secondary);
+  white-space: nowrap;
+}
+
+/* エラー一覧・実行ログの場所（押すとエディタで開く）。文字の見た目は周りに合わせ、下線で示す */
+.location-link {
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.location-link:hover,
+.location-link:focus-visible {
+  color: var(--accent-focus);
+}
+
+/* rust-analyzer の状態（D-130）。「対象」の左に置く。起動に失敗したときだけ強調する */
+.panel-lsp {
+  margin-left: auto;
+  align-self: center;
+  padding: 0 12px;
+  color: var(--fg-secondary);
+  white-space: nowrap;
+}
+
+.panel-lsp.failed {
+  color: var(--syntax-function);
+}
+
+.panel-lsp + .panel-target {
+  margin-left: 0;
+}
+
+/* 実行の対象（D-105）。タブの列の右端に置く */
+.panel-target {
+  margin-left: auto;
+  align-self: center;
+  padding: 0 12px;
+  overflow: hidden;
+  color: var(--fg-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.panel-body {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: auto;
+}
+
+.panel-empty {
+  padding: 8px 12px;
+  color: var(--fg-muted);
+}
+
+/* 実行ログ・エラー一覧（Phase 2 作業 4） */
+.run-log {
+  margin: 0;
+  padding: 8px 12px;
+  font-family: var(--font-code);
+  font-size: var(--font-size-code);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.run-log-info {
+  color: var(--fg-secondary);
+}
+
+.run-log-build {
+  color: var(--fg-muted);
+}
+
+.run-log-lsp {
+  color: var(--syntax-comment);
+}
+
+.run-log-stdout {
+  color: var(--fg-default);
+}
+
+.run-log-stderr {
+  color: var(--syntax-function);
+}
+
+.diagnostics {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.diagnostic {
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.diagnostic-head {
+  display: flex;
+  gap: 8px;
+}
+
+.diagnostic-level {
+  color: var(--fg-strong);
+}
+
+.diagnostic-error .diagnostic-level {
+  color: var(--syntax-function);
+}
+
+.diagnostic-place {
+  color: var(--fg-secondary);
+}
+
+.diagnostic-rendered {
+  margin: 4px 0 0;
+  font-family: var(--font-code);
+  font-size: var(--font-size-code);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* テスト結果（Phase 2 作業 5） */
+.test-results {
+  padding: 8px 12px;
+}
+
+.test-note {
+  color: var(--fg-secondary);
+}
+
+.test-summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  color: var(--fg-strong);
+}
+
+.cases {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.case {
+  border-bottom: 1px solid var(--border);
+}
+
+.case-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.case-head {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  gap: 12px;
+  padding: 4px 0;
+  border: none;
+  background: none;
+  color: var(--fg-default);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.case-head:disabled {
+  cursor: default;
+}
+
+.case-name {
+  min-width: 80px;
+}
+
+/* 判定の印（D-140）。AC は緑、WA・RE・TLE・MLE・OLE・CE は黄。補足の文字は後ろに並べる */
+.case-verdict {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.verdict-badge {
+  display: inline-block;
+  min-width: 34px;
+  padding: 0 6px;
+  border-radius: 4px;
+  color: var(--bg-base);
+  font-weight: bold;
+  text-align: center;
+}
+
+.verdict-ac {
+  background: var(--verdict-ac);
+}
+
+.verdict-ng {
+  background: var(--verdict-ng);
+}
+
+.verdict-badge + .case-verdict-text {
+  color: var(--fg-secondary);
+}
+
+.case-outputIncomplete .case-verdict {
+  color: var(--syntax-function);
+}
+
+.case-unjudged .case-verdict,
+.case-interrupted .case-verdict,
+.case-notRun .case-verdict,
+.case-time {
+  color: var(--fg-muted);
+}
+
+.case-body {
+  padding: 0 0 8px;
+}
+
+/* 対話テストの、解答とジャッジのやり取り（時系列。向きの印を左に付ける。Phase 4c 作業 2） */
+.exchange {
+  margin-top: 2px;
+}
+
+.exchange-turn {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 1px 0;
+}
+
+.exchange-arrow {
+  flex: 0 0 auto;
+  width: 9em;
+  color: var(--fg-secondary);
+  font-size: 12px;
+}
+
+.exchange-judge .exchange-arrow {
+  color: var(--accent-focus);
+}
+
+.exchange-solution .exchange-arrow {
+  color: var(--hl-number);
+}
+
+.exchange-turn .case-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+}
+
+/* 入力・期待する出力・実際の出力の並び。幅が足りないときは折り返す */
+.case-columns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+}
+
+.case-col {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+.case-col-wide {
+  flex: 2 1 440px;
+}
+
+.case-save {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.test-notice {
+  margin-top: 4px;
+  color: var(--fg-secondary);
+}
+
+.history {
+  padding: 8px 12px;
+}
+
+.history-empty {
+  margin-top: 8px;
+  color: var(--fg-muted);
+}
+
+.history-table {
+  width: 100%;
+  margin-top: 8px;
+  border-collapse: collapse;
+}
+
+.history-table th {
+  color: var(--fg-secondary);
+  font-weight: normal;
+  text-align: left;
+}
+
+.history-table th,
+.history-table td {
+  padding: 2px 12px 2px 0;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+.history-time,
+.history-elapsed {
+  white-space: nowrap;
+}
+
+.case-none {
+  margin-top: 2px;
+  color: var(--fg-muted);
+}
+
+/* 「このケースだけ実行」「失敗したケースだけ再実行」。無効なときは aria-disabled（理由は隣の文字と title で示す。D-023） */
+.test-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.case-action {
+  flex: none;
+  height: 20px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-tab-active);
+  color: var(--fg-strong);
+  font: inherit;
+  cursor: pointer;
+}
+
+.case-action:hover {
+  border-color: var(--accent-focus);
+}
+
+.case-action[aria-disabled="true"] {
+  color: var(--fg-muted);
+  cursor: default;
+}
+
+.case-action[aria-disabled="true"]:hover {
+  border-color: var(--border);
+}
+
+.case-label {
+  margin-top: 6px;
+  color: var(--fg-secondary);
+}
+
+.case-text {
+  margin: 2px 0 0;
+  font-family: var(--font-code);
+  font-size: var(--font-size-code);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.diff {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-code);
+  font-size: var(--font-size-code);
+}
+
+.diff th {
+  color: var(--fg-secondary);
+  font-family: var(--font-ui);
+  font-weight: normal;
+  text-align: left;
+}
+
+.diff td {
+  vertical-align: top;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.diff-line {
+  width: 3em;
+  color: var(--fg-line-number);
+}
+
+.diff-row.differs .diff-text {
+  background: var(--bg-selection);
+}
+
+/* 問題の選択欄（Phase 3a 作業 4。D-115） */
+.problem-selector {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: 12px;
+}
+
+.problem-contest,
+.problem-task {
+  height: 26px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-base);
+  color: var(--fg-default);
+  font: inherit;
+}
+
+.problem-contest {
+  width: 170px;
+}
+
+.problem-task {
+  max-width: 220px;
+}
+
+.problem-contest:disabled {
+  color: var(--fg-muted);
+}
+
+.problem-title-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+/* 問題文の欄の「…」の一覧（ユーザーの依頼、2026-10-28）。右クリックのメニューの見た目で、「…」の下に出す */
+.problem-more {
+  position: relative;
+}
+
+.problem-more-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  white-space: nowrap;
+}
+
+.problem-link {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--accent-focus);
+  font: inherit;
+  cursor: pointer;
+}
+
+.problem-link[aria-disabled="true"] {
+  color: var(--fg-muted);
+  cursor: default;
+}
+
+.problem-notice {
+  margin-top: 8px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--fg-secondary);
+}
+
+/* 「input! を作る」の結果の枠（Phase 15 作業 2。D-195） */
+.problem-input {
+  margin-top: 8px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-toolbar);
+}
+
+.problem-input-head {
+  color: var(--fg-secondary);
+}
+
+.problem-input-code {
+  margin: 6px 0;
+  padding: 6px 8px;
+  overflow-x: auto;
+  background: var(--bg-base);
+  color: var(--fg-default);
+  font-family: var(--font-code);
+  font-size: var(--font-size-code);
+  white-space: pre;
+}
+
+.problem-input-notes {
+  margin: 4px 0;
+  padding-left: 20px;
+  color: var(--lens-warning);
+}
+
+.problem-input-message {
+  margin-top: 6px;
+  color: var(--fg-secondary);
+}
+
+.problem-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+/* 問題文表示ゾーン（Phase 3a 作業 3。原典 §4.6） */
+.problem {
+  overflow: auto;
+}
+
+.problem-empty {
+  padding: 12px;
+  color: var(--fg-muted);
+}
+
+/* 問題文の欄の文字の大きさは settings.json の problem.fontSize（D-159。既定は 13px）。
+   題名・制限の値・見出しは、その大きさに対する割合（13px のときに 16px・15px・14px） */
+.problem-view {
+  padding: 12px 16px;
+  font-size: var(--font-size-problem);
+}
+
+.problem-head {
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.problem-title {
+  color: var(--fg-strong);
+  font-size: calc(var(--font-size-problem) * 16 / 13);
+}
+
+.problem-limits {
+  margin-top: 4px;
+  color: var(--fg-secondary);
+}
+
+.problem-statement {
+  line-height: 1.6;
+}
+
+/* 問題文のハイライト（D-142）。「問題文」「制約」の区画の数式の、数字（.mord）と変数（.mathnormal）。
+   \text{…}（.text）と演算子・関係の記号は色付けしない */
+.problem-statement .hl-section .katex-html .mord {
+  color: var(--hl-number);
+}
+
+.problem-statement .hl-section .katex-html .mathnormal {
+  color: var(--hl-variable);
+}
+
+.problem-statement .hl-section .katex-html .mord.text {
+  color: var(--fg-default);
+}
+
+/* mod の値（998244353 など）は、区画を問わず目立たせる */
+.problem-statement .katex-html .hl-mod {
+  padding: 0 2px;
+  border-radius: 3px;
+  background: var(--hl-mod-bg);
+  font-weight: bold;
+}
+
+.problem-statement .katex-html .hl-mod,
+.problem-statement .katex-html .hl-mod .mord {
+  color: var(--hl-mod);
+}
+
+/* 上端の実行時間制限・メモリ制限の値（D-116）を大きく、色付きで */
+.problem-limit-value {
+  color: var(--hl-number);
+  font-size: calc(var(--font-size-problem) * 15 / 13);
+  font-weight: bold;
+}
+
+.problem-statement h3 {
+  margin: 16px 0 6px;
+  color: var(--fg-strong);
+  font-size: calc(var(--font-size-problem) * 14 / 13);
+}
+
+/* 入力例・出力例の「コピー」（Phase 11 作業 1。D-177） */
+.sample-copy {
+  margin-left: 10px;
+  padding: 1px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: none;
+  color: var(--accent-focus);
+  font: inherit;
+  font-size: calc(var(--font-size-problem) * 11 / 13);
+  font-weight: normal;
+  vertical-align: middle;
+  cursor: pointer;
+}
+
+.sample-copy:hover {
+  background: var(--bg-list-selected);
+}
+
+.problem-statement pre {
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-base);
+  font-family: var(--font-code);
+  font-size: var(--font-size-problem);
+  white-space: pre-wrap;
+}
+
+.problem-statement table {
+  border-collapse: collapse;
+}
+
+.problem-statement th,
+.problem-statement td {
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+}
+
+/* 中身のない領域の表示（D-048） */
+.unimplemented {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--fg-muted);
+}
+
+/* デバッグ中のボタン（Phase 5 作業 2。D-146 2.5）。「デバッグ」の位置に並べる */
+.debug-buttons {
+  display: flex;
+  gap: 4px;
+}
+
+.debug-buttons .run-button {
+  min-width: 0;
+  padding: 0 8px;
+}
+
+/* デバッグ情報（Phase 5 作業 2。D-146 2.7）。サイドバーの「実行とデバッグ」に置く（Phase 12 作業 1。D-182） */
+.bottom-right-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.debug-panel {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.debug-body {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: auto;
+  padding: 4px 0 8px;
+}
+
+.debug-status {
+  padding: 4px 12px;
+  color: var(--fg-secondary);
+}
+
+.debug-status.panic {
+  color: var(--verdict-ng);
+}
+
+.debug-message {
+  padding: 2px 12px;
+  color: var(--verdict-ng);
+  overflow-wrap: anywhere;
+}
+
+.debug-section h3 {
+  margin: 8px 0 2px;
+  padding: 0 12px;
+  font-size: var(--font-size-ui);
+  font-weight: 600;
+  color: var(--fg-secondary);
+}
+
+/* 動いている間は、前に止まったときの内容を薄くする */
+.debug-section.stale {
+  opacity: 0.5;
+}
+
+.debug-empty {
+  padding: 2px 12px;
+  color: var(--fg-muted);
+}
+
+.debug-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-family: var(--font-code);
+  font-size: var(--font-size-code);
+}
+
+.debug-variable,
+.debug-watch,
+.debug-frame,
+.debug-breakpoint {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  padding: 1px 12px;
+  white-space: nowrap;
+}
+
+.debug-variable {
+  padding-right: 12px;
+}
+
+.debug-variable.expandable,
+.debug-frame,
+.debug-breakpoint-place {
+  cursor: pointer;
+}
+
+.debug-variable:hover,
+.debug-frame:hover,
+.debug-breakpoint:hover {
+  background: var(--bg-list-selected);
+}
+
+.debug-twisty {
+  flex: none;
+  width: 10px;
+  color: var(--fg-muted);
+}
+
+.debug-variable-name {
+  flex: none;
+  color: var(--syntax-variable);
+}
+
+.debug-variable-value {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.debug-variable-value.error {
+  color: var(--verdict-ng);
+}
+
+.debug-variable-type {
+  flex: none;
+  color: var(--fg-muted);
+}
+
+.debug-frame.selected {
+  background: var(--bg-selection);
+}
+
+/* 作業領域の外（標準ライブラリなど）のフレームは薄くする */
+.debug-frame.other {
+  color: var(--fg-muted);
+}
+
+.debug-frame-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.debug-frame-place {
+  flex: none;
+  margin-left: auto;
+  color: var(--fg-muted);
+}
+
+.debug-breakpoint-dot {
+  flex: none;
+  color: var(--debug-breakpoint);
+}
+
+.debug-breakpoint.unverified .debug-breakpoint-dot {
+  opacity: 0.4;
+}
+
+.debug-breakpoint-place {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.debug-breakpoint-path {
+  margin-left: 8px;
+  color: var(--fg-muted);
+}
+
+.debug-remove {
+  flex: none;
+  margin-left: auto;
+  padding: 0 4px;
+  border: none;
+  background: none;
+  color: var(--fg-muted);
+  font: inherit;
+  cursor: pointer;
+}
+
+.debug-remove:hover {
+  color: var(--fg-strong);
+}
+
+.debug-watch-form {
+  padding: 2px 12px;
+}
+
+.debug-watch-form input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 2px 6px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--bg-base);
+  color: var(--fg-default);
+  font-family: var(--font-code);
+  font-size: var(--font-size-code);
+}
+
+/* 下部パネルの「デバッグコンソール」タブ（Phase 5 作業 3。D-146 2.8）。出力を上に、入力欄を一番下に置く */
+.debug-console {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.debug-console-output {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: auto;
+}
+
+.console-important,
+.console-error {
+  color: var(--verdict-ng);
+}
+
+.console-input {
+  color: var(--fg-secondary);
+}
+
+.console-console,
+.console-info {
+  color: var(--fg-muted);
+}
+
+.debug-console-form {
+  flex: none;
+  padding: 4px 12px 6px;
+  border-top: 1px solid var(--border);
+}
+
+.debug-console-form input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 3px 6px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--bg-base);
+  color: var(--fg-default);
+  font-family: var(--font-code);
+  font-size: var(--font-size-code);
+}
+
+.debug-console-form input:disabled {
+  color: var(--fg-muted);
+}
+
+.debug-console-notice {
+  margin-top: 2px;
+  color: var(--fg-muted);
+  font-size: 12px;
+}
+
+/* 右下パネル（Phase 6 作業 3）：「提出結果」だけ（Phase 12 作業 1。D-182） */
+.right-panel,
+.right-panel-body {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.right-panel-body[hidden] {
+  display: none;
+}
+
+/* 「提出」ボタン（D-148 §2.2）。「デバッグ」の右に、少し間をあけて青で置く */
+.submit-gap {
+  margin-left: 12px;
+}
+
+.run-button.submit-button {
+  border-color: var(--accent-focus);
+  background: var(--accent-focus);
+  color: var(--fg-strong);
+}
+
+.run-button.submit-button:hover {
+  border-color: var(--fg-strong);
+}
+
+.run-button.submit-button[aria-disabled="true"] {
+  border-color: var(--border);
+  background: var(--bg-tab-active);
+  color: var(--fg-muted);
+}
+
+/* 「提出結果」タブ（D-148 §2.7） */
+.submit-body {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: auto;
+  padding: 6px 12px 8px;
+}
+
+.submit-session {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--fg-secondary);
+}
+
+.submit-notice {
+  margin-top: 8px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow-wrap: anywhere;
+}
+
+.submit-notice.failed {
+  border-color: var(--verdict-ng);
+}
+
+.submit-warnings-title {
+  margin-top: 6px;
+  color: var(--fg-secondary);
+}
+
+.submit-warnings {
+  margin: 2px 0 0;
+  padding-left: 18px;
+}
+
+.submit-list {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.submit-item {
+  padding: 6px 0;
+  border-top: 1px solid var(--border);
+}
+
+.submit-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--fg-strong);
+}
+
+.submit-time {
+  flex: none;
+  color: var(--fg-muted);
+}
+
+.submit-state {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.submit-numbers {
+  margin-top: 2px;
+}
+
+.submit-meta {
+  margin-top: 2px;
+  color: var(--fg-muted);
+  overflow-wrap: anywhere;
+}
+
+.submit-message {
+  margin-top: 4px;
+  color: var(--verdict-ng);
+  overflow-wrap: anywhere;
+}
+
+.submit-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.submit-footnote {
+  margin-top: 10px;
+  color: var(--fg-muted);
+}
+
+/* 判定中の印（灰） */
+.verdict-wait {
+  background: var(--fg-muted);
+}
+
+/* 表示の入切（Phase 8 作業 6。D-159。パンくずリストは Phase 18 作業 1、D-216）。settings.json の editor.indentRainbow・
+   editor.errorLens・editor.breadcrumbs が false のとき、
+   appearance.ts が body に付ける。エディタのテーマの規則より詳しいセレクターで消す */
+body.hide-indent-rainbow .cm-editor [class*="cm-indent-rainbow-"] {
+  background-color: transparent;
+}
+
+body.hide-error-lens .cm-editor .cm-errorLens-message {
+  display: none;
+}
+
+body.hide-error-lens .cm-editor [class*="cm-errorLens-line-"] {
+  background-image: none;
+}
+
+body.hide-breadcrumbs .breadcrumbs {
+  display: none;
+}
+
+/* 設定の画面（Phase 8 作業 6b。D-159）。窓の上に重ねるダイアログ */
+.settings-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.settings-dialog {
+  display: flex;
+  flex-direction: column;
+  width: min(720px, calc(100vw - 32px));
+  height: min(640px, calc(100vh - 32px));
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-sidebar);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.settings-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.settings-tabs {
+  display: flex;
+}
+
+.settings-tab {
+  padding: 10px 14px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--fg-secondary);
+  font: inherit;
+  cursor: pointer;
+}
+
+.settings-tab.selected {
+  border-bottom-color: var(--accent-focus);
+  color: var(--fg-strong);
+}
+
+.settings-body {
+  flex: 1;
+  min-height: 0;
+  padding: 8px 16px;
+  overflow: auto;
+}
+
+.settings-group h3 {
+  margin: 14px 0 4px;
+  color: var(--fg-strong);
+  font-size: var(--font-size-ui);
+}
+
+.settings-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.settings-table td {
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+
+.settings-name {
+  color: var(--fg-default);
+}
+
+.settings-key kbd {
+  padding: 1px 6px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--bg-base);
+  font-family: var(--font-ui);
+}
+
+.settings-none,
+.settings-alpha,
+.settings-unit {
+  color: var(--fg-muted);
+}
+
+.settings-capturing {
+  color: var(--accent-focus);
+}
+
+.settings-actions {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.settings-link {
+  margin-left: 10px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--accent-focus);
+  font: inherit;
+  cursor: pointer;
+}
+
+.settings-link:disabled {
+  color: var(--fg-muted);
+  cursor: default;
+}
+
+/* スニペット（Phase 13 作業 2。D-187） */
+.settings-actions-row {
+  display: flex;
+  align-items: center;
+}
+
+.settings-warning {
+  margin: 4px 0;
+  color: var(--lens-warning);
+  overflow-wrap: anywhere;
+}
+
+.settings-snippet-prefix {
+  width: 40%;
+  color: var(--fg-strong);
+  font-family: var(--font-code);
+  overflow-wrap: anywhere;
+}
+
+.settings-color {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 見本。濃さのある色も分かるように、灰色の上に重ねて塗る（色は設定の画面〔SettingsDialog.tsx〕が background-image に入れる） */
+.settings-swatch {
+  width: 18px;
+  height: 18px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background-color: #808080;
+}
+
+.settings-color input[type="color"] {
+  width: 32px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  background: none;
+}
+
+.settings-color input[type="range"] {
+  width: 120px;
+}
+
+/* 設定の画面の「スニペット」の、言語ごとの枠（Phase 17 作業 9。D-213） */
+.settings-snippets {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.settings-view {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 8px;
+}
+
+.settings-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.settings-size {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.settings-size .settings-name {
+  min-width: 180px;
+}
+
+.settings-size input {
+  width: 56px;
+  font: inherit;
+}
+
+.settings-step {
+  width: 26px;
+  height: 24px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--bg-base);
+  color: var(--fg-default);
+  font: inherit;
+  cursor: pointer;
+}
+
+.settings-step:disabled {
+  color: var(--fg-muted);
+  cursor: default;
+}
+
+.settings-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-top: 1px solid var(--border);
+}
+
+.settings-notice {
+  flex: 1;
+  color: var(--fg-secondary);
+  overflow-wrap: anywhere;
+}
+
+.settings-button {
+  padding: 5px 14px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-base);
+  color: var(--fg-default);
+  font: inherit;
+  cursor: pointer;
+}
+
+.settings-button.primary {
+  border-color: var(--accent-focus);
+  background: var(--accent-focus);
+  color: var(--fg-strong);
+}
+
+.settings-button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.settings-note {
+  margin: 0;
+  color: var(--fg-muted);
+  line-height: 1.6;
+}
+
+/* ペインの描画の失敗（Phase 10 作業 4。D-167） */
+.pane-error {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  color: var(--fg-secondary);
+  overflow-wrap: anywhere;
+}
+
+.pane-error-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* サイドバーを閉じているときの知らせ（Phase 10 作業 7） */
+.editor-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-toolbar);
+  color: var(--fg-secondary);
+}
+
+.editor-error-text {
+  flex: 1;
+  overflow-wrap: anywhere;
+  white-space: pre-line;
+}
+
+.editor-error-close {
+  padding: 0 4px;
+  border: none;
+  background: none;
+  color: var(--fg-muted);
+  font: inherit;
+  cursor: pointer;
+}
+
+/* 信頼していないフォルダの知らせ（Phase 10 作業 12。D-172） */
+.trust-banner {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  color: var(--fg-secondary);
+}

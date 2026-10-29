@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-package-problem"
+description = "Enables the package_problem command without any pre-configured scope."
+commands.allow = ["package_problem"]
+
+[[permission]]
+identifier = "deny-package-problem"
+description = "Denies the package_problem command without any pre-configured scope."
+commands.deny = ["package_problem"]

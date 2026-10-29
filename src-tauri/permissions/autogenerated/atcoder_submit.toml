@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-atcoder-submit"
+description = "Enables the atcoder_submit command without any pre-configured scope."
+commands.allow = ["atcoder_submit"]
+
+[[permission]]
+identifier = "deny-atcoder-submit"
+description = "Denies the atcoder_submit command without any pre-configured scope."
+commands.deny = ["atcoder_submit"]

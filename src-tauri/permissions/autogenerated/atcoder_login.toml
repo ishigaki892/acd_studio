@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-atcoder-login"
+description = "Enables the atcoder_login command without any pre-configured scope."
+commands.allow = ["atcoder_login"]
+
+[[permission]]
+identifier = "deny-atcoder-login"
+description = "Denies the atcoder_login command without any pre-configured scope."
+commands.deny = ["atcoder_login"]

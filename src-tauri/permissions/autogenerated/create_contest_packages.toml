@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-create-contest-packages"
+description = "Enables the create_contest_packages command without any pre-configured scope."
+commands.allow = ["create_contest_packages"]
+
+[[permission]]
+identifier = "deny-create-contest-packages"
+description = "Denies the create_contest_packages command without any pre-configured scope."
+commands.deny = ["create_contest_packages"]

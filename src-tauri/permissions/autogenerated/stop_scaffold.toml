@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-stop-scaffold"
+description = "Enables the stop_scaffold command without any pre-configured scope."
+commands.allow = ["stop_scaffold"]
+
+[[permission]]
+identifier = "deny-stop-scaffold"
+description = "Denies the stop_scaffold command without any pre-configured scope."
+commands.deny = ["stop_scaffold"]

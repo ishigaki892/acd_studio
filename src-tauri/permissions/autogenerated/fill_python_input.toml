@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-fill-python-input"
+description = "Enables the fill_python_input command without any pre-configured scope."
+commands.allow = ["fill_python_input"]
+
+[[permission]]
+identifier = "deny-fill-python-input"
+description = "Denies the fill_python_input command without any pre-configured scope."
+commands.deny = ["fill_python_input"]

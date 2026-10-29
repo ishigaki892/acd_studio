@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-fill-cpp-input"
+description = "Enables the fill_cpp_input command without any pre-configured scope."
+commands.allow = ["fill_cpp_input"]
+
+[[permission]]
+identifier = "deny-fill-cpp-input"
+description = "Denies the fill_cpp_input command without any pre-configured scope."
+commands.deny = ["fill_cpp_input"]

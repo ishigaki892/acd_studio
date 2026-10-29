@@ -1,0 +1,42 @@
+# macOS
+.DS_Store
+
+# Rust / Cargo の生成物（src-tauri/target を含む）
+# Cargo.lock は依存関係の固定のためコミットする（除外しない）
+**/target/
+
+# Tauri が生成する capabilities 補完用スキーマ
+# 出典：create-tauri-app 公式テンプレート templates/_base_/src-tauri/_gitignore（2026-10-14 確認）
+src-tauri/gen/schemas/
+
+# Node.js の依存関係と生成物
+node_modules/
+dist/
+dist-ssr/
+*.local
+# TypeScript のビルド情報（composite の設定で型検査のたびに作られる）
+*.tsbuildinfo
+
+# 認証情報・秘密情報
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.cookie
+cookies*.json
+
+# ログ
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# エディタ・個人用の設定
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.sw?
+.claude/settings.local.json

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-make-input"
+description = "Enables the make_input command without any pre-configured scope."
+commands.allow = ["make_input"]
+
+[[permission]]
+identifier = "deny-make-input"
+description = "Denies the make_input command without any pre-configured scope."
+commands.deny = ["make_input"]

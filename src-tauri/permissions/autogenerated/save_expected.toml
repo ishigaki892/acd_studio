@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-save-expected"
+description = "Enables the save_expected command without any pre-configured scope."
+commands.allow = ["save_expected"]
+
+[[permission]]
+identifier = "deny-save-expected"
+description = "Denies the save_expected command without any pre-configured scope."
+commands.deny = ["save_expected"]

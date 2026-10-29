@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-atcoder-session"
+description = "Enables the atcoder_session command without any pre-configured scope."
+commands.allow = ["atcoder_session"]
+
+[[permission]]
+identifier = "deny-atcoder-session"
+description = "Denies the atcoder_session command without any pre-configured scope."
+commands.deny = ["atcoder_session"]

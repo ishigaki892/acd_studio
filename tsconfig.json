@@ -1,0 +1,32 @@
+{
+  "compilerOptions": {
+    /* TypeScript 6 の既定値を明示する（D-056） */
+    "strict": true,
+    "module": "esnext",
+    "target": "es2025",
+    "noUncheckedSideEffectImports": true,
+    "libReplacement": false,
+    "rootDir": "./",
+    "types": [],
+    "stableTypeOrdering": true,
+
+    "useDefineForClassFields": true,
+    "lib": ["ES2025", "DOM"],
+    "skipLibCheck": true,
+
+    /* Bundler mode */
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+
+    /* Linting */
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true
+  },
+  "include": ["src"],
+  "references": [{ "path": "./tsconfig.node.json" }]
+}

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-lsp-locate"
+description = "Enables the lsp_locate command without any pre-configured scope."
+commands.allow = ["lsp_locate"]
+
+[[permission]]
+identifier = "deny-lsp-locate"
+description = "Denies the lsp_locate command without any pre-configured scope."
+commands.deny = ["lsp_locate"]

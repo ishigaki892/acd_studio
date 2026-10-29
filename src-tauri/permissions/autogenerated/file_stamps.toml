@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-file-stamps"
+description = "Enables the file_stamps command without any pre-configured scope."
+commands.allow = ["file_stamps"]
+
+[[permission]]
+identifier = "deny-file-stamps"
+description = "Denies the file_stamps command without any pre-configured scope."
+commands.deny = ["file_stamps"]

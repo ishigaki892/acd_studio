@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-set-problem-choice"
+description = "Enables the set_problem_choice command without any pre-configured scope."
+commands.allow = ["set_problem_choice"]
+
+[[permission]]
+identifier = "deny-set-problem-choice"
+description = "Denies the set_problem_choice command without any pre-configured scope."
+commands.deny = ["set_problem_choice"]

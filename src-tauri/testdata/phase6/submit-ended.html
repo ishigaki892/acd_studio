@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<!-- AtCoder Studio のテスト用（Phase 6 作業 2）。2026-10-24 に試作で取得した、終わったコンテストの提出のページを短くしたもの。
+     ユーザー名は testuser に、csrf_token は仮の値に置き換えた。言語の選択肢は一部だけ残した -->
+<html>
+<head>
+	<title>Submit - AtCoder Beginner Contest 480</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+	<meta http-equiv="Content-Language" content="en">
+	<meta name="viewport" content="width=device-width,initial-scale=1.0">
+	<meta name="format-detection" content="telephone=no">
+	<meta name="google-site-verification" content="nXGC_JxO0yoP1qBzMnYD_xgufO6leSLw1kyNo2HZltM" />
+	<meta name="robots" content="noai, noimageai">
+
+	
+	<script>
+		window.dataLayer = window.dataLayer || [];
+		function gtag(){dataLayer.push(arguments);}
+		gtag('js', new Date());
+		gtag('set', 'user_properties', {
+			
+				'login_status': 'logged_in',
+			
+		});
+		gtag('config', 'G-RC512FD18N');
+	</script>
+
+	
+	<meta name="description" content="AtCoder is a programming contest site for anyone from beginners to experts. We hold weekly programming contests online.">
+	<meta name="author" content="AtCoder Inc.">
+
+	<meta property="og:site_name" content="AtCoder">
+	
+	<meta property="og:title" content="Submit - AtCoder Beginner Contest 480" />
+	<meta property="og:description" content="AtCoder is a programming contest site for anyone from beginners to experts. We hold weekly programming contests online." />
+	<meta property="og:type" content="website" />
+	<meta property="og:url" content="https://atcoder.jp/contests/abc480/submit?taskScreenName=abc480_a" />
+	<meta property="og:image" content="https://img.atcoder.jp/assets/atcoder.png" />
+	<meta name="twitter:card" content="summary" />
+	<meta name="twitter:site" content="@atcoder" />
+	
+	<meta property="twitter:title" content="Submit - AtCoder Beginner Contest 480" />
+
+	<script>
+		var LANG = "en";
+		var userScreenName = "testuser";
+		var csrfToken = "test+csrf/token="
+	</script>
+	
+	
+		<script>
+			var contestScreenName = "abc480";
+			var remainingText = "Remaining Time";
+			var countDownText = "Contest begins in";
+			var startTime = moment("2026-10-17T21:00:00+09:00");
+			var endTime = moment("2026-10-17T22:40:00+09:00");
+		</script>
+		<style></style>
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+</head>
+<body>
+<form class="form-horizontal form-code-submit" action="/contests/abc480/submit" method="POST">
+			
+			<div class="form-group ">
+				<label class="control-label col-sm-3 col-md-2" for="select-task">Task</label>
+				<div class="col-sm-5">
+					<select class="form-control" id="select-task" name="data.TaskScreenName">
+						
+							<option value="abc480_a" selected>A - ADjacent</option>
+						
+							<option value="abc480_b">B - Invalid Vote</option>
+						
+							<option value="abc480_c">C - Self-Stopping Shower</option>
+						
+							<option value="abc480_d">D - Concatenation of Prefixes</option>
+						
+							<option value="abc480_e">E - Product-Bounded Arithmetic Sequences</option>
+						
+							<option value="abc480_f">F - Cake Cutting</option>
+						
+							<option value="abc480_g">G - Zonal Score Minimization</option>
+						
+					</select>
+					<span class="error"></span>
+				</div>
+			</div>
+			
+			
+			<div class="form-group ">
+				<label class="control-label col-sm-3 col-md-2" for="select-lang">Language</label>
+				<div id="select-lang" class="col-sm-5" data-name="data.LanguageId" style="display:none;">
+					
+						<div id="select-lang-abc480_a">
+							<select class="form-control" data-placeholder="-" style="width:300px;">
+								
+								
+									<option value="6087" data-ace-mode="ruby">Ruby 3.4 (ruby 3.4.5)</option>
+								
+									<option value="6088" data-ace-mode="rust">Rust (rustc 1.89.0)</option>
+								
+									<option value="6089" data-ace-mode="python">SageMath (SageMath 10.7)</option>
+								
+							</select>
+						</div>
+					
+						<div id="select-lang-abc480_b">
+							<select class="form-control" data-placeholder="-" style="width:300px;">
+								
+								
+									<option value="6087" data-ace-mode="ruby">Ruby 3.4 (ruby 3.4.5)</option>
+								
+									<option value="6088" data-ace-mode="rust">Rust (rustc 1.89.0)</option>
+								
+									<option value="6089" data-ace-mode="python">SageMath (SageMath 10.7)</option>
+								
+							</select>
+						</div>
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+					<span class="error"></span>
+				</div>
+			</div>
+			<script>var currentLang = getLS('defaultLang');</script>
+			
+			
+<div class="form-group">
+	<div class="col-sm-3 col-md-2 editor-label">
+		<label class="control-label" for="sourceCode">Source Code</label>
+		<div class="editor-buttons">
+			<button id="btn-open-file" type="button" class="btn btn-default btn-sm">
+				<span class="glyphicon glyphicon-folder-open" aria-hidden="true"></span> &nbsp; Open File
+			</button>
+			<button id="btn-customize" type="button" class="btn btn-default btn-sm">
+				<span class="glyphicon glyphicon-cog" aria-hidden="true"></span> &nbsp; Customize
+			</button>
+			<button type="button" class="btn btn-default btn-sm btn-toggle-editor" data-toggle="button" autocomplete="off">
+				Toggle Editor
+			</button>
+			<button type="button" class="btn btn-default btn-sm btn-auto-height" data-toggle="button" autocomplete="off">
+				Auto Height
+			</button>
+		</div>
+	</div>
+	<div class="col-sm-9 col-md-10" id="sourceCode">
+		<div id="editor"></div>
+		<textarea id="plain-textarea" class="form-control" style="display:none;" name="sourceCode"></textarea>
+		<p>
+			<span class="gray">* at most 512 KiB</span><br>
+		</p>
+	</div>
+	<input id="input-open-file" type="file" style="display:none;">
+</div>
+
+
+			<input type="hidden" name="csrf_token" value="test&#43;csrf/token=" />
+			<div class="form-group">
+				<label class="control-label col-sm-3 col-md-2"></label>
+				<div class="col-sm-5">
+					
+					
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+
+<div class="cf-challenge" data-sitekey="0x4AAAAAAA6HJUmmLP7mLxx0" data-theme="light"></div>
+
+
+
+					
+					<button id="submit" type="submit" class="btn btn-primary">Submit</button>
+				</div>
+			</div>
+		</form>
+</body>
+</html>

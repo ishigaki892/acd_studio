@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-debug-step"
+description = "Enables the debug_step command without any pre-configured scope."
+commands.allow = ["debug_step"]
+
+[[permission]]
+identifier = "deny-debug-step"
+description = "Denies the debug_step command without any pre-configured scope."
+commands.deny = ["debug_step"]

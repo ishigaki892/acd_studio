@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-load-task-list"
+description = "Enables the load_task_list command without any pre-configured scope."
+commands.allow = ["load_task_list"]
+
+[[permission]]
+identifier = "deny-load-task-list"
+description = "Denies the load_task_list command without any pre-configured scope."
+commands.deny = ["load_task_list"]

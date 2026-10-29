@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-debug-stack"
+description = "Enables the debug_stack command without any pre-configured scope."
+commands.allow = ["debug_stack"]
+
+[[permission]]
+identifier = "deny-debug-stack"
+description = "Denies the debug_stack command without any pre-configured scope."
+commands.deny = ["debug_stack"]

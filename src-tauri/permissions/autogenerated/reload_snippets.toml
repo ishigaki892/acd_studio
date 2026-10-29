@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-reload-snippets"
+description = "Enables the reload_snippets command without any pre-configured scope."
+commands.allow = ["reload_snippets"]
+
+[[permission]]
+identifier = "deny-reload-snippets"
+description = "Denies the reload_snippets command without any pre-configured scope."
+commands.deny = ["reload_snippets"]

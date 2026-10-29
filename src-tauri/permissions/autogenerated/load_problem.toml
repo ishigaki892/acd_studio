@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-load-problem"
+description = "Enables the load_problem command without any pre-configured scope."
+commands.allow = ["load_problem"]
+
+[[permission]]
+identifier = "deny-load-problem"
+description = "Denies the load_problem command without any pre-configured scope."
+commands.deny = ["load_problem"]
