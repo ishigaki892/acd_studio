@@ -63,6 +63,7 @@ import ContestView from "./sidebar/ContestView";
 import { useTabs } from "./editor/useTabs";
 import {
   askDiscardChanges,
+  fileStamps,
   locateSource,
   trustWorkspace,
   openWorkspace,
@@ -479,6 +480,20 @@ function App() {
       return;
     }
     chooseProblem(id);
+  }
+  // サイドバーの「コンテスト」で問題を押した。その問題のフォルダ（<コンテスト>/<問題 ID>/）に
+  // src/main.rs・main.cpp・main.py があれば、それを開く（開けば、問題はフォルダから決まる。D-117）。
+  // なければ（作業領域を開いていないときも）、問題文の欄でその問題を選ぶ
+  async function openContestTask(id: ProblemId) {
+    const folder = `${id.contest}/${id.task}`;
+    const candidates = [`${folder}/src/main.rs`, `${folder}/main.cpp`, `${folder}/main.py`];
+    const stamps = await fileStamps(candidates).catch(() => null);
+    const index = stamps?.findIndex((stamp) => stamp !== null) ?? -1;
+    if (index >= 0) {
+      await handleOpenFile(candidates[index]);
+      return;
+    }
+    showProblem(id);
   }
   const buttons = runButtons(runState, target !== null, !untrusted);
 
@@ -1642,7 +1657,7 @@ function App() {
               visible={sidebar.visible && sidebarView === "contest"}
               loggedIn={session?.loggedIn ?? false}
               submissions={submissions}
-              onSelectTask={showProblem}
+              onSelectTask={(id) => void openContestTask(id)}
               onLogin={() => void handleLogin()}
             />
           </PaneBoundary>
