@@ -21,7 +21,7 @@ AtCoder の問題を Rust・C++・Python で解くための、macOS 向けデス
 > [!IMPORTANT]
 > AtCoder の非公式ツールです。AtCoder 株式会社とは関係ありません。
 >
-> - 提出機能は自己責任でお使いください。AtCoder は非公式ツールをサポートしていません。また、AtCoder 側の仕様が変わると使えなくなることがあります。
+> - 提出機能は自己責任でお使いください。製作者は責任を負いません
 > - コンテストに参加するときは、そのコンテストのルール（生成 AI の利用に関するルールを含む）を守ってください。
 
 ## 必要なもの
@@ -92,6 +92,7 @@ xattr -dr com.apple.quarantine "/Applications/AtCoder Studio.app"
 - 公開しているリポジトリには、開発用の文書（設計の記録・作業ログ・開発の手順をまとめた CLAUDE.md）は置いていません。`docs/` にあるのは使い方（[docs/usage.md](docs/usage.md)）だけなので、コードのコメントに出てくる `docs/` 内のほかのファイルは見られません。
 - 開発用のコマンドは、`npm run tauri dev`（開発用に起動）、`npm run build`（フロントエンドの型チェックとビルド）、`src-tauri/` での `cargo test`・`cargo clippy --all-targets`・`cargo fmt` です。
 - Windows には対応していません。
+- Claude Codeを使用して開発しています。
 
 ## ライセンス
 
