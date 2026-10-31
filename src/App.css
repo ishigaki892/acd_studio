@@ -866,6 +866,58 @@ body.dragging-horizontal * {
   white-space: nowrap;
 }
 
+/* 順位・予想 perf（Phase 21。D-230） */
+.contest-standings {
+  padding: 0 12px 6px;
+  color: var(--fg-secondary);
+  font-size: 12px;
+}
+
+/* 色はレートの色（下の .rating-*） */
+.contest-performance {
+  font-weight: 600;
+}
+
+/* 予想 diff。色はレートの色（下の .rating-*。D-230） */
+.contest-diff {
+  flex: none;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+/* レートの色（予想 perf・予想 diff。tokens.css の --rating-*） */
+.rating-gray {
+  color: var(--rating-gray);
+}
+
+.rating-brown {
+  color: var(--rating-brown);
+}
+
+.rating-green {
+  color: var(--rating-green);
+}
+
+.rating-cyan {
+  color: var(--rating-cyan);
+}
+
+.rating-blue {
+  color: var(--rating-blue);
+}
+
+.rating-yellow {
+  color: var(--rating-yellow);
+}
+
+.rating-orange {
+  color: var(--rating-orange);
+}
+
+.rating-red {
+  color: var(--rating-red);
+}
+
 .contest-link {
   align-self: flex-start;
   margin: 8px 12px;

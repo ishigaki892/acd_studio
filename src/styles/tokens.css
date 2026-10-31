@@ -41,6 +41,16 @@
   /* サンプルテストの判定の印（D-140）。AC は緑、それ以外の誤り（WA・RE・TLE・MLE・OLE・CE）は黄。文字は背景の色 */
   --verdict-ac: #5cb85c;
   --verdict-ng: #f0ad4e;
+  /* 予想 perf・予想 diff のレートの色（Phase 21。D-230）。AtCoder の 400 ごとの色を、暗い背景で読めるように明るくした
+     （背景 #181818 とのコントラスト比はどれも 5.7 以上。公式の茶・青・緑は 2.1〜3.5 で読みにくい） */
+  --rating-gray: #a0a0a0;
+  --rating-brown: #c58a4f;
+  --rating-green: #3fb950;
+  --rating-cyan: #33cccc;
+  --rating-blue: #6b8cff;
+  --rating-yellow: #d6d63a;
+  --rating-orange: #ff9a3c;
+  --rating-red: #ff6262;
   /* 問題文のハイライト（D-142）。数字・変数（「問題文」「制約」の区画）、mod の値、制限の値 */
   --hl-number: #e8b86d;
   --hl-variable: #7fc8f8;

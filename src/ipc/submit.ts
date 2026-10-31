@@ -117,6 +117,42 @@ export type TaskStatus = {
   count: number;
 };
 
+// 自分の順位（Phase 21。D-230）
+export type Place = {
+  // 全体の順位
+  rank: number;
+  // Rated の中での順位（同順位は平均。Unrated の参加なら、Rated の人の中に入れたときの順位）
+  ratedRank: number;
+  isRated: boolean;
+};
+
+export type TaskDifficulty = {
+  task: string;
+  // 予想 diff（400 未満は直した値）。出せなければ null
+  difficulty: number | null;
+};
+
+// 順位表から計算したもの（Rust 側は src-tauri/src/standings.rs。D-230〜D-232）
+export type StandingsSummary = {
+  // 順位が確定した（終わったあと）
+  fixed: boolean;
+  participants: number;
+  ratedCount: number;
+  // 参加していなければ null
+  place: Place | null;
+  // 予想パフォーマンス（近似。D-231）
+  performance: number | null;
+  difficulties: TaskDifficulty[];
+  // 予想 perf・予想 diff を出さない理由（Rated でない・AHC）
+  note: string | null;
+};
+
+export type StandingsOutcome =
+  | { kind: "read"; summary: StandingsSummary }
+  // 始まる前（順位表は読まない）
+  | { kind: "notStarted" }
+  | { kind: "failed"; message: string };
+
 export type ContestStatus = {
   contest: string;
   tasks: TaskStatus[];
@@ -125,6 +161,8 @@ export type ContestStatus = {
   // 上限のページまで読んでも続きがあった
   truncated: boolean;
   pages: number;
+  // 順位・予想パフォーマンス・予想 diff（Phase 21。D-230）。読めなくても、提出状況は出る
+  standings: StandingsOutcome;
 };
 
 export type StatusOutcome =
@@ -132,7 +170,7 @@ export type StatusOutcome =
   | { kind: "notLoggedIn" }
   | { kind: "failed"; message: string };
 
-// 「自分の提出」のページを読み、問題ごとに数える
+// 「自分の提出」のページを読み、問題ごとに数える。続けて順位表を読み、順位・予想 perf・予想 diff を計算する（D-230）
 export function contestStatus(contest: string): Promise<StatusOutcome> {
   return invoke<StatusOutcome>("contest_status", { contest });
 }

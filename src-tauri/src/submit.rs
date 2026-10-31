@@ -28,6 +28,7 @@ use crate::language::Language;
 use crate::python::{self, Interpreter, PythonSettings};
 use crate::run::{Finish, SubmittedRecord};
 use crate::session::{self, Client, Keychain, NOT_LOGGED_IN, SessionState, SessionView};
+use crate::standings::StandingsOutcome;
 use crate::storage::SubmitSettings;
 use crate::toolchain::Target;
 
@@ -843,6 +844,13 @@ impl Remote {
     fn get(&self, path: &str) -> Result<session::Reply, String> {
         self.pace();
         self.client.request(&format!("{}{path}", self.base), &[])
+    }
+
+    // 大きな JSON（順位表）を圧縮して受け取る（Phase 21。D-233）
+    fn get_compressed(&self, path: &str) -> Result<session::Reply, String> {
+        self.pace();
+        self.client
+            .request_compressed(&format!("{}{path}", self.base))
     }
 
     fn post(&self, path: &str, form: &[(&str, &str)]) -> Result<session::Reply, String> {
@@ -1872,7 +1880,7 @@ pub struct TaskStatus {
     pub count: u32,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ContestStatus {
     pub contest: String,
@@ -1882,9 +1890,11 @@ pub struct ContestStatus {
     // 上限のページまで読んでも続きがあった（新しいものだけを数えた）
     pub truncated: bool,
     pub pages: u32,
+    // 順位・予想パフォーマンス・予想 diff（Phase 21。D-230）。読めなくても、提出状況は出す
+    pub standings: crate::standings::StandingsOutcome,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(
     rename_all = "camelCase",
     rename_all_fields = "camelCase",
@@ -1938,11 +1948,20 @@ pub fn summarize(tasks: &[crate::problem::TaskEntry], rows: &[MineRow]) -> Vec<T
     list
 }
 
+// 「自分の提出」を読んだ結果。user は 1 ページ目から読んだ自分のユーザー名（順位表で自分の行を探す。D-230）
+struct Mine {
+    rows: Vec<MineRow>,
+    truncated: bool,
+    pages: u32,
+    user: Option<String>,
+}
+
 // 「自分の提出」のページを 1 ページ目から読む。次のページへのリンクがない・新しい行がないところで止める。
 // 上限まで読んでも続きがあれば truncated。同じ提出が 2 つのページに出ても（読む間に提出が増えたとき）1 つと数える
-fn read_mine(remote: &Remote, contest: &str) -> Result<(Vec<MineRow>, bool, u32), String> {
+fn read_mine(remote: &Remote, contest: &str) -> Result<Mine, String> {
     let mut rows = Vec::new();
     let mut seen = HashSet::new();
+    let mut user = None;
     for page in 1..=MAX_STATUS_PAGES {
         let reply = remote.get(&format!("/contests/{contest}/submissions/me?page={page}"))?;
         if reply.status != 200 {
@@ -1955,6 +1974,9 @@ fn read_mine(remote: &Remote, contest: &str) -> Result<(Vec<MineRow>, bool, u32)
                 reply.status
             ));
         }
+        if page == 1 {
+            user = session::user_screen_name(&reply.body);
+        }
         let (found, has_next) = parse_mine_page(&reply.body, contest, page);
         let before = rows.len();
         for row in found {
@@ -1963,10 +1985,58 @@ fn read_mine(remote: &Remote, contest: &str) -> Result<(Vec<MineRow>, bool, u32)
             }
         }
         if !has_next || rows.len() == before {
-            return Ok((rows, false, page));
+            return Ok(Mine {
+                rows,
+                truncated: false,
+                pages: page,
+                user,
+            });
         }
     }
-    Ok((rows, true, MAX_STATUS_PAGES))
+    Ok(Mine {
+        rows,
+        truncated: true,
+        pages: MAX_STATUS_PAGES,
+        user,
+    })
+}
+
+// 順位表を読んで、順位・予想パフォーマンス・予想 diff を計算する（Phase 21。D-230〜D-233）。
+// Rated の範囲と開催期間は、ログインなしで読めるコンテストのページから（アプリを開いている間は覚えておく）。
+// 始まる前は順位表を読まない。順位表の中身はメモリの中だけで使う
+fn read_standings(remote: &Remote, contest: &str, user: Option<&str>) -> StandingsOutcome {
+    let info = match crate::standings::contest_info(contest, || {
+        let reply = remote.public(&format!("/contests/{contest}"))?;
+        if reply.status == 200 {
+            Ok(reply.body)
+        } else {
+            Err(format!(
+                "コンテストのページを読めません（HTTP {}）",
+                reply.status
+            ))
+        }
+    }) {
+        Ok(info) => info,
+        Err(message) => return StandingsOutcome::Failed { message },
+    };
+    if now_secs() < info.start {
+        return StandingsOutcome::NotStarted;
+    }
+    let reply = match remote.get_compressed(&format!("/contests/{contest}/standings/json")) {
+        Ok(reply) => reply,
+        Err(message) => return StandingsOutcome::Failed { message },
+    };
+    if reply.status != 200 {
+        return StandingsOutcome::Failed {
+            message: format!("順位表を読めません（HTTP {}）", reply.status),
+        };
+    }
+    match crate::standings::parse_standings(&reply.body) {
+        Ok(data) => StandingsOutcome::Read {
+            summary: crate::standings::summarize(&data, user, info.kind, info.start),
+        },
+        Err(message) => StandingsOutcome::Failed { message },
+    }
 }
 
 // コンテストの提出状況（サイドバーの「コンテスト」）。問題の一覧は覚えてあるもの（なければ読む）
@@ -1984,13 +2054,14 @@ pub fn contest_status(remote: &Remote, app_dir: &Path, contest: &str) -> StatusO
         Err(message) => return StatusOutcome::Failed { message },
     };
     match read_mine(remote, contest) {
-        Ok((rows, truncated, pages)) => StatusOutcome::Read {
+        Ok(mine) => StatusOutcome::Read {
             status: ContestStatus {
                 contest: contest.to_string(),
-                tasks: summarize(&tasks, &rows),
+                tasks: summarize(&tasks, &mine.rows),
                 read_at_ms: now_ms(),
-                truncated,
-                pages,
+                truncated: mine.truncated,
+                pages: mine.pages,
+                standings: read_standings(remote, contest, mine.user.as_deref()),
             },
         },
         Err(message) if message == NOT_LOGGED_IN => StatusOutcome::NotLoggedIn,
@@ -3437,18 +3508,29 @@ mod tests {
         );
         assert_eq!(status.tasks[1].count, 1);
         assert_eq!(status.tasks[2].count, 0);
-        // セッションを付けて、コンテストの「自分の提出」だけを読む
+        // セッションを付けて、コンテストの「自分の提出」を読む。続けてコンテストのページ（セッションなし）を読み、
+        // 読めなければ順位表は読まない（提出状況は出す）
         let seen = seen.lock().unwrap();
-        assert_eq!(seen.len(), 2);
-        assert!(
-            seen.iter()
-                .all(|r| r.method == "GET"
-                    && r.target.starts_with("/contests/x/submissions/me?page="))
+        let targets: Vec<&str> = seen.iter().map(|r| r.target.as_str()).collect();
+        assert_eq!(
+            targets,
+            [
+                "/contests/x/submissions/me?page=1",
+                "/contests/x/submissions/me?page=2",
+                "/contests/x"
+            ]
         );
+        assert!(seen.iter().all(|r| r.method == "GET"));
         assert!(
-            seen.iter()
+            seen[..2]
+                .iter()
                 .all(|r| r.head.contains("Cookie: REVEL_SESSION=session"))
         );
+        assert!(!seen[2].head.contains("Cookie:"));
+        assert!(matches!(
+            status.standings,
+            crate::standings::StandingsOutcome::Failed { .. }
+        ));
         let _ = std::fs::remove_dir_all(&dir);
     }
 
@@ -3457,8 +3539,11 @@ mod tests {
         let dir = status_app_dir("limit");
         let keychain = TestKeychain::new("status-limit");
         keychain.0.save("session").unwrap();
-        // どのページにも次のページがある
+        // どのページにも次のページがある（コンテストのページは読めない）
         let (base, seen) = fake(Arc::new(|request: &Request, _| {
+            if !request.target.contains("/submissions/me?page=") {
+                return not_found();
+            }
             let page: u64 = request.target.rsplit('=').next().unwrap().parse().unwrap();
             ok(&status_page(
                 &[(1000 - page, "x_c", "WA")],
@@ -3471,7 +3556,8 @@ mod tests {
         };
         assert_eq!((status.pages, status.truncated), (MAX_STATUS_PAGES, true));
         assert_eq!(status.tasks[2].count, MAX_STATUS_PAGES);
-        assert_eq!(seen.lock().unwrap().len(), MAX_STATUS_PAGES as usize);
+        // 上限のページと、コンテストのページ
+        assert_eq!(seen.lock().unwrap().len(), MAX_STATUS_PAGES as usize + 1);
         let _ = std::fs::remove_dir_all(&dir);
     }
 
@@ -3512,5 +3598,137 @@ mod tests {
         ));
         assert!(seen.lock().unwrap().is_empty());
         let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    // 順位表の見本（3 人。me は 2 位）
+    fn standings_json() -> String {
+        let row = |name: &str, rank: i64| {
+            format!(
+                "{{\"Rank\":{rank},\"UserScreenName\":\"{name}\",\"IsRated\":true,\"Rating\":1200,\"OldRating\":1200,\"Competitions\":5,\"TaskResults\":{{\"y_a\":{{\"Score\":10000,\"Status\":1}}}},\"TotalResult\":{{\"Count\":1}}}}"
+            )
+        };
+        format!(
+            "{{\"Fixed\":false,\"TaskInfo\":[{{\"TaskScreenName\":\"y_a\"}}],\"StandingsData\":[{},{},{}]}}",
+            row("first", 1),
+            row("me", 2),
+            row("third", 3)
+        )
+    }
+
+    fn status_dir_for(contest: &str, name: &str) -> PathBuf {
+        let dir = status_app_dir(name);
+        std::fs::write(
+            dir.join(format!("task-lists/{contest}.json")),
+            serde_json::to_vec(&task_entries(&[(&format!("{contest}_a"), "A")])).unwrap(),
+        )
+        .unwrap();
+        dir
+    }
+
+    #[test]
+    fn reads_the_standings_after_the_submissions() {
+        let dir = status_dir_for("y", "standings");
+        let keychain = TestKeychain::new("status-standings");
+        keychain.0.save("session").unwrap();
+        let now = now_secs();
+        let (base, seen) = fake(Arc::new(move |request: &Request, _| {
+            match request.target.as_str() {
+                "/contests/y/submissions/me?page=1" => ok(&format!(
+                    "<script>var userScreenName = \"me\";</script>{}",
+                    status_page(&[], None)
+                )),
+                "/contests/y" => ok(&format!(
+                    "{}<span class=\"mr-2\">Rated対象:  ~ 1999</span>",
+                    top_page(now - 600, now + 600)
+                )),
+                "/contests/y/standings/json" => ok(&standings_json()),
+                _ => not_found(),
+            }
+        }));
+        let StatusOutcome::Read { status } = contest_status(&remote(&keychain, &base), &dir, "y")
+        else {
+            panic!("読めるはず");
+        };
+        let crate::standings::StandingsOutcome::Read { summary } = &status.standings else {
+            panic!("順位表を読めるはず：{:?}", status.standings);
+        };
+        // 1 ページ目のユーザー名で自分の行を探す
+        let place = summary.place.as_ref().unwrap();
+        assert_eq!((place.rank, place.rated_rank), (2, 2.0));
+        assert!(summary.performance.is_some());
+        // 順位表はセッションを付け、圧縮して受け取るよう頼む。コンテストのページはセッションなし
+        let seen = seen.lock().unwrap();
+        let targets: Vec<&str> = seen.iter().map(|r| r.target.as_str()).collect();
+        assert_eq!(
+            targets,
+            [
+                "/contests/y/submissions/me?page=1",
+                "/contests/y",
+                "/contests/y/standings/json"
+            ]
+        );
+        assert!(!seen[1].head.contains("Cookie:"));
+        assert!(seen[2].head.contains("Cookie: REVEL_SESSION=session"));
+        assert!(
+            seen[2]
+                .head
+                .to_ascii_lowercase()
+                .contains("accept-encoding:")
+        );
+        // 順位表の中身はアプリのフォルダに書かない（問題の一覧だけ）
+        let files: Vec<_> = walk(&dir);
+        assert_eq!(files, ["task-lists/x.json", "task-lists/y.json"]);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn does_not_read_the_standings_before_the_start() {
+        let dir = status_dir_for("z", "not-started");
+        let keychain = TestKeychain::new("status-not-started");
+        keychain.0.save("session").unwrap();
+        let now = now_secs();
+        let (base, seen) = fake(Arc::new(move |request: &Request, _| {
+            match request.target.as_str() {
+                "/contests/z/submissions/me?page=1" => ok(&status_page(&[], None)),
+                "/contests/z" => ok(&format!(
+                    "{}<span class=\"mr-2\">Rated対象: - </span>",
+                    top_page(now + 600, now + 1200)
+                )),
+                _ => not_found(),
+            }
+        }));
+        let StatusOutcome::Read { status } = contest_status(&remote(&keychain, &base), &dir, "z")
+        else {
+            panic!("読めるはず");
+        };
+        assert_eq!(
+            status.standings,
+            crate::standings::StandingsOutcome::NotStarted
+        );
+        assert_eq!(seen.lock().unwrap().len(), 2);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    // dir の中のファイル（dir からの相対パス。並べて返す）
+    fn walk(dir: &Path) -> Vec<String> {
+        let mut files = Vec::new();
+        let mut stack = vec![dir.to_path_buf()];
+        while let Some(current) = stack.pop() {
+            for entry in std::fs::read_dir(&current).unwrap() {
+                let path = entry.unwrap().path();
+                if path.is_dir() {
+                    stack.push(path);
+                } else {
+                    files.push(
+                        path.strip_prefix(dir)
+                            .unwrap()
+                            .to_string_lossy()
+                            .into_owned(),
+                    );
+                }
+            }
+        }
+        files.sort();
+        files
     }
 }

@@ -21,6 +21,7 @@ mod search;
 mod session;
 mod snippets;
 mod sources;
+mod standings;
 mod storage;
 mod submit;
 mod toolchain;

@@ -25,6 +25,9 @@ const ACCOUNT: &str = "REVEL_SESSION";
 // ログインの状態が変わったことを main の窓に知らせるイベント
 pub const SESSION_EVENT: &str = "atcoder-session";
 
+// 圧縮して受け取るときの大きさの上限（D-233）
+const MAX_COMPRESSED_BYTES: &str = "20000000";
+
 pub const NOT_LOGGED_IN: &str =
     "AtCoder にログインしていません。「提出結果」タブの「ログイン」からログインしてください";
 
@@ -273,11 +276,25 @@ impl Client {
     // セッションを付けて url を読む（form があれば POST）。リダイレクトはたどらない。
     // ログインしていない・ログインのページへ移されたら Err(NOT_LOGGED_IN)（Keychain の値も消す）
     pub fn request(&self, url: &str, form: &[(&str, &str)]) -> Result<Reply, String> {
+        self.request_with(url, form, false)
+    }
+
+    // 大きな JSON（順位表。展開後 10 MB ほど）を、圧縮して受け取って読む（Phase 21。D-233）。ほかは request と同じ
+    pub fn request_compressed(&self, url: &str) -> Result<Reply, String> {
+        self.request_with(url, &[], true)
+    }
+
+    fn request_with(
+        &self,
+        url: &str,
+        form: &[(&str, &str)],
+        compressed: bool,
+    ) -> Result<Reply, String> {
         let session = self
             .keychain
             .load()?
             .ok_or_else(|| NOT_LOGGED_IN.to_string())?;
-        let (status, headers, body) = self.send(url, Some(&session), form)?;
+        let (status, headers, body) = self.send(url, Some(&session), form, compressed)?;
         if let Some(value) = rotated_session(&headers)
             && value != session
         {
@@ -297,7 +314,7 @@ impl Client {
 
     // セッションを付けずに url を読む（ログインなしで読めるページ。コンテストのトップなど）
     pub fn public(&self, url: &str) -> Result<Reply, String> {
-        let (status, headers, body) = self.send(url, None, &[])?;
+        let (status, headers, body) = self.send(url, None, &[], false)?;
         Ok(Reply {
             status,
             location: header(&headers, "location").next().map(str::to_string),
@@ -305,12 +322,14 @@ impl Client {
         })
     }
 
-    // curl で 1 回送る。設定（Cookie・URL・フォーム）は標準入力から渡す
+    // curl で 1 回送る。設定（Cookie・URL・フォーム）は標準入力から渡す。
+    // compressed なら gzip などで受け取り（--compressed）、大きさの上限を広げる（D-233）
     fn send(
         &self,
         url: &str,
         session: Option<&str>,
         form: &[(&str, &str)],
+        compressed: bool,
     ) -> Result<(u16, Vec<String>, String), String> {
         let mut config = String::new();
         if let Some(session) = session {
@@ -326,22 +345,26 @@ impl Client {
                 quote_config(&format!("{key}={value}"))
             ));
         }
-        let mut child = Command::new("/usr/bin/curl")
-            .args([
-                "--silent",
-                "--show-error",
-                "--include",
-                // 状態の JSON の URL の `sids[]` を、curl の範囲の書き方として読ませない
-                "--globoff",
-                "--proto",
-                self.proto,
-                "--max-time",
-                "30",
-                "--max-filesize",
-                "8000000",
-                "--config",
-                "-",
-            ])
+        let mut command = Command::new("/usr/bin/curl");
+        command.args([
+            "--silent",
+            "--show-error",
+            "--include",
+            // 状態の JSON の URL の `sids[]` を、curl の範囲の書き方として読ませない
+            "--globoff",
+            "--proto",
+            self.proto,
+            "--max-time",
+            "30",
+        ]);
+        if compressed {
+            // 上限は受け取る（圧縮した）大きさ。ABC481 の順位表は 0.76 MB（展開後 9.7 MB）
+            command.args(["--compressed", "--max-filesize", MAX_COMPRESSED_BYTES]);
+        } else {
+            command.args(["--max-filesize", "8000000"]);
+        }
+        let mut child = command
+            .args(["--config", "-"])
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
@@ -543,7 +566,7 @@ fn confirm_session(client: &Client, url: &str, value: &str) -> Result<String, St
     if !valid_cookie_value(value) {
         return Err("ログインのセッションを読めません".to_string());
     }
-    let (status, headers, body) = client.send(url, Some(value), &[])?;
+    let (status, headers, body) = client.send(url, Some(value), &[], false)?;
     match user_screen_name(&body) {
         Some(name) if status == 200 => {
             let session = rotated_session(&headers).unwrap_or_else(|| value.to_string());
