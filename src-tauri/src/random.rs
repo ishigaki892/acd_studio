@@ -125,6 +125,10 @@ fn run_helper(
         Ok(result) => result,
         Err(message) => return Helper::Failed(format!("{what}を起動できません：{message}")),
     };
+    // 動かしている間に止める操作があれば、終わり方にかかわらず止めたことにする（止めた回は数えない）
+    if cancel.load(Ordering::SeqCst) {
+        return Helper::Stopped;
+    }
     let reason = match result.outcome {
         Outcome::Stopped => return Helper::Stopped,
         Outcome::Exited(0) if !result.output_left_open => return Helper::Done(result.stdout),
@@ -344,7 +348,8 @@ pub(crate) fn run_random(
             Err(message) => return Finish::Failed { message },
         };
         let verdict = verdict_of(&result, Some(&expected), plan.settings);
-        if matches!(verdict, Verdict::Interrupted) {
+        // 動かしている間に止める操作があれば、判定にかかわらず止める（止めた回は保存せず、数えない）
+        if matches!(verdict, Verdict::Interrupted) || cancel.load(Ordering::SeqCst) {
             interrupted = true;
             break;
         }

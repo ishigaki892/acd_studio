@@ -336,6 +336,11 @@ pub fn run(
             Err(_) => break,
         }
     }
+    // 終わるのと同時に止める操作があり、出力を読み切る前に打ち切ったときは、止めたことにする
+    // （途中までの出力を、終了コードどおりの結果として扱わない）
+    if stopped.is_none() && open > 0 && cancel.load(Ordering::SeqCst) {
+        stopped = Some(Outcome::Stopped);
+    }
 
     let outcome = stopped.unwrap_or_else(|| match (status.code(), status.signal()) {
         (Some(code), _) => Outcome::Exited(code),
@@ -716,6 +721,10 @@ pub fn run_pair(
             Err(_) => break,
         }
     }
+    // 終わるのと同時に止める操作があり、出力を読み切る前に打ち切ったときは、止めたことにする（run と同じ）
+    if open > 0 && cancel.load(Ordering::SeqCst) {
+        stopped = true;
+    }
 
     let [solution_stderr, judge_stderr] = stderr;
     Ok(PairResult {
@@ -894,6 +903,36 @@ mod tests {
         .unwrap();
         assert_eq!(result.outcome, Outcome::Stopped);
         assert!(result.elapsed < Duration::from_secs(3));
+    }
+
+    #[test]
+    fn counts_as_stopped_when_cancelled_while_reading_the_rest() {
+        // 直接の子は終わり（終了コード 0）、グループから抜けた子孫が出力を続ける。子が終わったあと、
+        // 残りの出力を読んでいる間に止める操作をする（止めるのと終わるのが同じ瞬間のときと同じ状況）。
+        // 出力を読み切っていないので、終了コード 0 ではなく、止めたことにする
+        let mark = std::env::temp_dir().join(format!(
+            "atcoder-studio-stop-while-draining-{}-{}",
+            std::process::id(),
+            line!()
+        ));
+        let _ = std::fs::remove_file(&mark);
+        let script = format!(
+            "perl -MPOSIX -e 'my $f = shift; if (fork() == 0) {{ POSIX::setsid(); open(my $h, \">\", $f); close($h); $| = 1; for (1..200) {{ print \"x\"; select(undef, undef, undef, 0.1) }} exit }} for (1..500) {{ last if -e $f; select(undef, undef, undef, 0.01) }} print \"$$\\n\"' {}",
+            mark.display()
+        );
+        let cancel = Arc::new(AtomicBool::new(false));
+        let flag = cancel.clone();
+        thread::spawn(move || {
+            thread::sleep(Duration::from_millis(1000));
+            flag.store(true, Ordering::SeqCst);
+        });
+        let result = run(sh(&script), None, &limits(5000, 1024), &cancel, |_, _| {}).unwrap();
+        // 後片付け：抜けた子孫を止める（グループ外なので、印のファイルの名前で探して止める）
+        let _ = Command::new("pkill")
+            .args(["-f", &mark.display().to_string()])
+            .status();
+        let _ = std::fs::remove_file(&mark);
+        assert_eq!(result.outcome, Outcome::Stopped);
     }
 
     #[test]

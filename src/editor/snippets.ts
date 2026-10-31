@@ -44,10 +44,17 @@ function snippetSource(language: Language) {
   };
 }
 
+// 補完の元は言語ごとに 1 回だけ作って使い回す。CodeMirror の補完は元を関数そのもので見分けるので、
+// 毎回作り直すと、言語サーバーの答えを待つ間に、届いたスニペットの候補が捨てられる（.py で出なかった）
+function snippetData(language: Language) {
+  const data = [{ autocomplete: snippetSource(language) }];
+  return EditorState.languageData.of(() => data);
+}
+
 const completions: Record<Language, ReturnType<typeof EditorState.languageData.of>> = {
-  rust: EditorState.languageData.of(() => [{ autocomplete: snippetSource("rust") }]),
-  cpp: EditorState.languageData.of(() => [{ autocomplete: snippetSource("cpp") }]),
-  python: EditorState.languageData.of(() => [{ autocomplete: snippetSource("python") }]),
+  rust: snippetData("rust"),
+  cpp: snippetData("cpp"),
+  python: snippetData("python"),
 };
 
 export function snippetCompletions(language: Language) {
